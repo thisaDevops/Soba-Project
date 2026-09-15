@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Products — Soba Zero-Waste Marketplace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Work+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --forest: #3B7A34;
+    --forest-dim: #2C5D27;
+    --forest-bright: #5FAE47;
+    --sand: #FFFFFF;
+    --sand-deep: #F1F0E9;
+    --clay: #C86D51;
+    --clay-soft: #E9B7A4;
+    --lime: #A8E070;
+    --sage: #768A6E;
+    --ink: #2B2D2F;
+    --paper: #F9F8F3;
+    --line: #E2DFD7;
+    
+    /* Eco-Glass V2 Variables */
+    --neo: #b8ff6a;
+    --deep: #0b2b20;
+    --deep2: #123d2c;
+    --glass: rgba(255, 255, 255, 0.06);
+    --glass-line: rgba(255, 255, 255, 0.14);
+    --white-soft: rgba(255, 255, 255, 0.82);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  
+  body {
+    margin: 0;
+    background: #071c15;
+    color: #fff;
+    font-family: 'Work Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -5;
+    background:
+      radial-gradient(circle at 15% 15%, rgba(184,255,106,.12), transparent 32%),
+      radial-gradient(circle at 85% 25%, rgba(56,189,248,.08), transparent 30%),
+      radial-gradient(circle at 50% 90%, rgba(200,109,81,.12), transparent 35%),
+      linear-gradient(135deg, #04120e 0%, #082219 48%, #051812 100%);
+  }
+
+  #grain {
+    position: fixed; inset: 0; z-index: 9998; pointer-events: none; opacity: 0.035; mix-blend-mode: screen;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  #spotlight {
+    position: fixed; inset: 0; z-index: 9997; pointer-events: none;
+    background: radial-gradient(400px circle at var(--mx,50%) var(--my,20%), rgba(184,255,106,.12), transparent 65%);
+  }
+
+  h1, h2, h3, .display { font-family: 'Fraunces', serif; font-weight: 500; margin: 0; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  /* ===== Header Styling ===== */
+  header { position: sticky; top: 0; z-index: 50; }
+  
+  .topbar {
+    background: rgba(184, 255, 106, 0.08);
+    border-bottom: 1px solid rgba(184, 255, 106, 0.12);
+    backdrop-filter: blur(14px);
+    height: 34px; display: flex; align-items: center; overflow: hidden;
+  }
+  .marquee-track {
+    display: flex; gap: 60px; white-space: nowrap; animation: marquee 40s linear infinite;
+    font-size: 12.5px; color: #dfffd0; padding-left: 100%; font-weight: 500;
+  }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+
+  .header-top {
+    background: rgba(7, 28, 21, 0.65); border-bottom: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(20px);
+  }
+  .header-top .bar {
+    max-width: 1480px; 
+    margin: 0 auto; 
+    padding: 14px 28px; 
+    display: grid; 
+    grid-template-columns: 1fr minmax(300px, 640px) 1fr; 
+    align-items: center; 
+    gap: 22px;
+  }
+  .logo { 
+    display: flex; 
+    align-items: baseline; 
+    gap: 8px; 
+    text-decoration: none; 
+    justify-self: start;
+  }
+  .logo .mark { font-family: 'Fraunces', serif; font-weight: 600; font-size: 26px; color: #f5fff1; text-shadow: 0 0 24px rgba(184,255,106,.18); }
+  .logo .sub { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--neo); font-weight: 600; }
+
+  .search-group {
+    width: 100%;
+    max-width: 640px; 
+    display: flex; 
+    height: 46px; 
+    border-radius: 14px; 
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.14); 
+    background: rgba(255, 255, 255, 0.06);
+    justify-self: center;
+    transition: border-color 0.2s;
+  }
+  .search-group:focus-within { border-color: var(--neo); box-shadow: 0 0 15px rgba(184, 255, 106, 0.2); }
+  .search-group input {
+    flex: 1; border: none; padding: 0 18px; font-size: 14px; color: #fff; background: transparent; font-family: 'Work Sans', sans-serif;
+  }
+  .search-group input::placeholder { color: rgba(255, 255, 255, 0.45); }
+  .search-group input:focus { outline: none; }
+  .search-go { background: var(--neo); border: none; width: 56px; cursor: pointer; font-size: 16px; color: #102117; transition: opacity 0.2s; }
+  .search-go:hover { opacity: 0.88; }
+
+  .bar-right { 
+    display: flex; 
+    align-items: center; 
+    gap: 16px; 
+    justify-self: end;
+  }
+  .cart-btn {
+    background: rgba(255, 255, 255, 0.06); color: #fff; border: 1px solid rgba(184, 255, 106, 0.35);
+    border-radius: 999px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; font-family: 'Work Sans', sans-serif; transition: all 0.2s;
+  }
+  .cart-btn:hover { background: rgba(184, 255, 106, 0.15); border-color: var(--neo); transform: translateY(-1px); }
+  .cart-count {
+    background: var(--neo); color: #102117; border-radius: 999px; font-size: 11px;
+    min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+    padding: 0 6px; font-weight: 800; font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .header-nav {
+    background: rgba(8, 31, 23, 0.75); backdrop-filter: blur(18px); border-top: 1px solid rgba(184, 255, 106, 0.10);
+  }
+  .header-nav .bar { max-width: 1480px; margin: 0 auto; padding: 12px 28px; display: flex; gap: 32px; }
+  .header-nav nav a {
+    color: rgba(255, 255, 255, 0.65); text-decoration: none; font-size: 14px; font-weight: 600; position: relative; padding-bottom: 6px; transition: color 0.2s;
+  }
+  .header-nav nav a:hover, .header-nav nav a.active { color: var(--neo); }
+  .header-nav nav a.active::after {
+    content: ""; position: absolute; left: 0; bottom: 0; width: 100%; height: 2.5px; background: var(--neo); box-shadow: 0 0 14px rgba(184, 255, 106, 0.8); border-radius: 2px;
+  }
+
+  /* ===== Hero Banner ===== */
+  .page-banner { max-width: 1420px; margin: 30px auto 15px; padding: 0 28px; }
+  .page-banner-card {
+    position: relative; overflow: hidden;
+    background: linear-gradient(135deg, rgba(184, 255, 106, 0.12) 0%, rgba(12, 45, 33, 0.4) 50%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid rgba(184, 255, 106, 0.2); border-radius: 28px; padding: 46px 48px; backdrop-filter: blur(20px);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+  .page-banner-card::after {
+    content: "SOBA"; position: absolute; right: -20px; bottom: -30px; font-size: 160px; font-weight: 900;
+    color: rgba(255,255,255,0.02); font-family: 'Fraunces', serif; pointer-events: none; letter-spacing: -0.05em;
+  }
+  .page-banner-card .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(184, 255, 106, 0.15); border: 1px solid rgba(184, 255, 106, 0.3);
+    padding: 6px 14px; border-radius: 999px; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--neo); font-weight: 700; margin-bottom: 14px;
+  }
+  .page-banner-card h1 { font-size: 48px; color: #f5fff1; font-weight: 600; line-height: 1.1; }
+  .page-banner-card p { color: rgba(240, 255, 246, 0.78); max-width: 620px; font-size: 15px; margin-top: 12px; line-height: 1.6; }
+
+  /* ===== Shop & Filter Shell ===== */
+  .shop-shell { max-width: 1420px; margin: 0 auto; padding: 20px 28px 100px; }
+  
+  .filter-row {
+    display: flex; gap: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    margin-bottom: 35px; border-top: 1px solid rgba(255,255,255,0.10); border-bottom: 1px solid rgba(255,255,255,0.10);
+    padding: 18px 0;
+  }
+  .filter-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .filter-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.5); font-weight: 700; margin-right: 6px; }
+  
+  .chip {
+    border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.85);
+    border-radius: 999px; padding: 9px 20px; font-size: 13px; cursor: pointer; backdrop-filter: blur(10px);
+    font-family: 'Work Sans', sans-serif; font-weight: 600; transition: all 0.25s ease;
+  }
+  .chip:hover { border-color: var(--neo); color: #fff; background: rgba(184, 255, 106, 0.1); }
+  .chip.active { background: var(--neo); color: #081d14; border-color: var(--neo); font-weight: 700; box-shadow: 0 0 20px rgba(184, 255, 106, 0.35); }
+
+  .select-filter {
+    border: 1px solid rgba(255,255,255,0.14); background: rgba(7, 28, 21, 0.85); color: rgba(255,255,255,0.9);
+    border-radius: 12px; padding: 10px 16px; font-size: 13px; font-family: 'Work Sans', sans-serif; cursor: pointer; font-weight: 500; outline: none;
+  }
+  .select-filter:focus { border-color: var(--neo); }
+
+  .section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 28px; }
+  .section-head h2 { font-size: 34px; color: #f5fff2; letter-spacing: -0.02em; }
+  .section-head .count { font-size: 13px; color: rgba(255,255,255,0.5); font-family: 'IBM Plex Mono', monospace; font-weight: 500; }
+
+  /* ===== Product Grid ===== */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 28px; }
+  
+  .card {
+    position: relative;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 22px;
+    overflow: hidden; display: flex; flex-direction: column; backdrop-filter: blur(16px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+  }
+  .card:hover {
+    transform: translateY(-8px) scale(1.01);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.4), 0 0 30px rgba(184, 255, 106, 0.18);
+    border-color: rgba(184, 255, 106, 0.45);
+  }
+
+  .card-art {
+    height: 220px; display: flex; align-items: center; justify-content: center; font-size: 72px;
+    background: radial-gradient(circle at 50% 50%, rgba(184, 255, 106, 0.12), transparent 70%),
+                linear-gradient(160deg, rgba(255,255,255,0.05), rgba(8, 32, 24, 0.4));
+    position: relative; overflow: hidden;
+  }
+  .card-art .emoji-icon {
+    filter: drop-shadow(0 15px 25px rgba(0,0,0,0.5));
+    transition: transform 0.35s ease;
+  }
+  .card:hover .card-art .emoji-icon { transform: scale(1.12) rotate(-3deg); }
+
+  .card-cert {
+    position: absolute; top: 14px; left: 14px;
+    background: rgba(7, 28, 21, 0.75); color: var(--neo);
+    border: 1px solid rgba(184, 255, 106, 0.4); font-size: 10.5px; font-weight: 700; padding: 5px 10px; border-radius: 8px;
+    letter-spacing: 0.05em; backdrop-filter: blur(10px); text-transform: uppercase;
+  }
+  .card-wish {
+    position: absolute; top: 14px; right: 14px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.18);
+    width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 15px; transition: all 0.25s; color: #fff; backdrop-filter: blur(10px);
+  }
+  .card-wish:hover, .card-wish.active { background: var(--clay); border-color: var(--clay); transform: scale(1.1); }
+
+  .poster-price-tag {
+    position: absolute; bottom: 12px; right: 14px;
+    background: var(--neo); color: #081d14;
+    padding: 6px 14px; border-radius: 999px;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 14px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  }
+
+  .card-body { padding: 22px; display: flex; flex-direction: column; gap: 10px; flex: 1; background: rgba(6, 22, 16, 0.3); }
+  .card-body h3 { font-size: 18px; font-weight: 700; font-family: 'Work Sans', sans-serif; color: #fff; line-height: 1.3; }
+  .card-meta { font-size: 11px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+  
+  .card-saved {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--neo); font-weight: 600;
+    background: rgba(184, 255, 106, 0.08); padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(184, 255, 106, 0.15); width: fit-content;
+  }
+  
+  .card-foot { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 14px; }
+  
+  .add-btn {
+    width: 100%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+    color: #fff; border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer;
+    font-family: 'Work Sans', sans-serif; transition: all 0.25s ease; text-transform: uppercase; letter-spacing: 0.05em;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .add-btn:hover { background: var(--neo); color: #081d14; border-color: var(--neo); box-shadow: 0 0 20px rgba(184, 255, 106, 0.4); }
+  .add-btn.added { background: var(--sage); color: #fff; border-color: var(--sage); }
+
+  /* ===== Cart Drawer ===== */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.65); opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 80; backdrop-filter: blur(6px);
+  }
+  .overlay.open { opacity: 1; pointer-events: auto; }
+  
+  .drawer {
+    position: fixed; top: 0; right: 0; height: 100%; width: 440px; max-width: 92vw;
+    background: #061912; border-left: 1px solid rgba(255,255,255,0.14); z-index: 90;
+    transform: translateX(100%); transition: transform 0.35s cubic-bezier(.4,0,.2,1);
+    display: flex; flex-direction: column; box-shadow: -10px 0 50px rgba(0,0,0,0.6);
+  }
+  .drawer.open { transform: translateX(0); }
+  
+  .drawer-head { padding: 24px 26px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
+  .drawer-head h2 { font-size: 22px; color: var(--neo); font-weight: 600; }
+  .drawer-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #fff; opacity: 0.7; transition: opacity 0.2s; }
+  .drawer-close:hover { opacity: 1; }
+
+  /* Bulk Action Control Bar */
+  .cart-bulk-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; margin-bottom: 12px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+  }
+  .cart-bulk-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); }
+  .cart-bulk-label input[type="checkbox"], .cart-item-checkbox {
+    accent-color: var(--neo); width: 17px; height: 17px; cursor: pointer;
+  }
+  .delete-selected-btn {
+    background: rgba(200, 109, 81, 0.2); color: var(--clay-soft); border: 1px solid rgba(200, 109, 81, 0.4);
+    padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .delete-selected-btn:hover:not(:disabled) { background: var(--clay); color: #fff; border-color: var(--clay); }
+  .delete-selected-btn:disabled { opacity: 0.35; cursor: not-allowed; border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); background: transparent; }
+
+  .drawer-body { flex: 1; overflow-y: auto; padding: 20px 26px; }
+  .cart-item { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.08); align-items: center; }
+  .cart-item .art { width: 50px; height: 50px; background: rgba(255,255,255,0.06); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
+  .cart-item .info { flex: 1; }
+  .cart-item .info h4 { font-size: 14px; margin: 0 0 4px; color: #fff; font-weight: 600; }
+  .cart-item .info .sub { font-size: 13px; color: var(--neo); font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+  
+  .qty-controls { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .qty-btn {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff;
+    width: 24px; height: 24px; border-radius: 6px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; font-weight: bold; font-size: 14px; transition: all 0.2s;
+  }
+  .qty-btn:hover:not(:disabled) { background: var(--neo); color: #081d14; border-color: var(--neo); }
+  .qty-val { font-family: 'IBM Plex Mono', monospace; font-size: 13px; min-width: 20px; text-align: center; }
+  
+  .remove-btn {
+    background: none; border: none; color: rgba(255, 255, 255, 0.4); cursor: pointer;
+    font-size: 16px; padding: 6px; transition: color 0.2s, transform 0.2s;
+  }
+  .remove-btn:hover { color: var(--clay); transform: scale(1.15); }
+
+  .drawer-foot { border-top: 1px solid rgba(255,255,255,0.1); padding: 24px; background: rgba(4, 16, 12, 0.6); }
+  .cart-total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 15px; font-weight: 600; }
+  .cart-total-price { color: var(--neo); font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 700; }
+  
+  .checkout-btn { width: 100%; background: var(--neo); color: #081d14; border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s; }
+  .checkout-btn:hover { box-shadow: 0 0 25px rgba(184, 255, 106, 0.4); transform: translateY(-1px); }
+
+  /* ===== Footer ===== */
+  footer { background: #04110c; border-top: 1px solid rgba(255,255,255,0.08); padding: 60px 28px 24px; font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 90px; }
+  .footer-inner { max-width: 1420px; margin: 0 auto; padding-bottom: 40px; display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 36px; }
+  .footer-col { display: flex; flex-direction: column; gap: 12px; }
+  .footer-col a { color: rgba(255,255,255,0.65); text-decoration: none; font-size: 13.5px; transition: color 0.2s; }
+  .footer-col a:hover { color: var(--neo); }
+  .footer-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--neo); font-weight: 700; margin-bottom: 6px; }
+
+  /* ===== Product Details Popup (ADDED) ===== */
+  .product-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    background: rgba(0,0,0,.72);
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .28s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .product-modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .product-modal {
+    width: min(980px, 96vw);
+    max-height: 92vh;
+    overflow: auto;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(184,255,106,.12), transparent 28%),
+      linear-gradient(145deg, #102d22 0%, #071b14 55%, #06150f 100%);
+    border: 1px solid rgba(184,255,106,.28);
+    border-radius: 28px;
+    box-shadow: 0 35px 90px rgba(0,0,0,.65), 0 0 45px rgba(184,255,106,.10);
+    transform: translateY(20px) scale(.97);
+    transition: transform .3s ease;
+  }
+  .product-modal-overlay.open .product-modal {
+    transform: translateY(0) scale(1);
+  }
+  .product-modal-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(0,0,0,.35);
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    z-index: 3;
+  }
+  .product-modal-close:hover {
+    background: var(--neo);
+    color: #081d14;
+  }
+  .product-modal-main {
+    display: grid;
+    grid-template-columns: 46% 54%;
+    min-height: 540px;
+  }
+  .product-modal-visual {
+    position: relative;
+    min-height: 540px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-right: 1px solid rgba(255,255,255,.10);
+    background:
+      radial-gradient(circle at 50% 45%, rgba(184,255,106,.20), transparent 45%),
+      linear-gradient(145deg, rgba(184,255,106,.08), rgba(255,255,255,.02));
+  }
+  .product-modal-visual::before {
+    content: "";
+    position: absolute;
+    width: 330px;
+    height: 330px;
+    border-radius: 50%;
+    border: 1px solid rgba(184,255,106,.16);
+    box-shadow: 0 0 70px rgba(184,255,106,.10);
+  }
+  .product-modal-icon {
+    position: relative;
+    z-index: 1;
+    font-size: 145px;
+    filter: drop-shadow(0 25px 28px rgba(0,0,0,.55));
+  }
+  .product-modal-cert {
+    position: absolute;
+    top: 26px;
+    left: 26px;
+    padding: 8px 13px;
+    border-radius: 999px;
+    color: var(--neo);
+    background: rgba(7,28,21,.78);
+    border: 1px solid rgba(184,255,106,.34);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  .product-modal-visual-note {
+    position: absolute;
+    left: 26px;
+    bottom: 25px;
+    right: 26px;
+    color: rgba(255,255,255,.55);
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .product-modal-info {
+    padding: 46px 42px 38px;
+  }
+  .product-modal-category {
+    color: var(--neo);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .15em;
+    margin-bottom: 10px;
+  }
+  .product-modal-info h2 {
+    color: #f5fff1;
+    font-size: clamp(30px, 4vw, 48px);
+    line-height: 1.05;
+    margin: 0 50px 10px 0;
+  }
+  .product-modal-subtitle {
+    color: rgba(255,255,255,.60);
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+  .product-modal-rating {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .product-modal-stars {
+    color: #ffb43b;
+    letter-spacing: 2px;
+    font-size: 18px;
+  }
+  .product-modal-rating span {
+    color: rgba(255,255,255,.55);
+    font-size: 12px;
+  }
+  .product-modal-description {
+    color: rgba(240,255,246,.78);
+    line-height: 1.7;
+    font-size: 14px;
+    max-width: 620px;
+    margin-bottom: 22px;
+  }
+  .product-modal-highlights {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 25px;
+  }
+  .product-highlight {
+    padding: 12px 14px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.04);
+    border-radius: 12px;
+  }
+  .product-highlight b {
+    display: block;
+    color: var(--neo);
+    font-size: 11px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+  }
+  .product-highlight span {
+    color: rgba(255,255,255,.72);
+    font-size: 12px;
+  }
+  .product-modal-price-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,.10);
+  }
+  .product-modal-price {
+    color: #fff;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 30px;
+    font-weight: 700;
+  }
+  .product-modal-add {
+    min-width: 190px;
+    border: 0;
+    border-radius: 12px;
+    padding: 15px 22px;
+    background: var(--neo);
+    color: #081d14;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    transition: .2s ease;
+  }
+  .product-modal-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 28px rgba(184,255,106,.38);
+  }
+  .product-reviews {
+    border-top: 1px solid rgba(255,255,255,.10);
+    padding: 30px 42px 36px;
+    background: rgba(0,0,0,.12);
+  }
+  .product-reviews-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 15px;
+    margin-bottom: 18px;
+  }
+  .product-reviews-head h3 {
+    color: #fff;
+    font-family: 'Fraunces', serif;
+    font-size: 25px;
+  }
+  .product-reviews-head span {
+    color: rgba(255,255,255,.45);
+    font-size: 11px;
+  }
+  .review-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .review-card {
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.045);
+    border-radius: 15px;
+    padding: 16px;
+  }
+  .review-card .stars {
+    color: #ffb43b;
+    font-size: 12px;
+    margin-bottom: 9px;
+  }
+  .review-card p {
+    color: rgba(255,255,255,.72);
+    font-size: 12px;
+    line-height: 1.55;
+    margin: 0 0 12px;
+  }
+  .review-card strong {
+    color: rgba(255,255,255,.9);
+    font-size: 11px;
+  }
+  @media (max-width: 760px) {
+    .product-modal-overlay { padding: 10px; }
+    .product-modal-main { grid-template-columns: 1fr; }
+    .product-modal-visual {
+      min-height: 300px;
+      border-right: 0;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .product-modal-icon { font-size: 105px; }
+    .product-modal-visual::before { width: 230px; height: 230px; }
+    .product-modal-info { padding: 30px 24px; }
+    .product-modal-info h2 { font-size: 32px; }
+    .product-modal-price-row { align-items: stretch; flex-direction: column; }
+    .product-modal-add { width: 100%; }
+    .product-reviews { padding: 25px 24px 30px; }
+    .review-grid { grid-template-columns: 1fr; }
+  }
+
+</style>
+</head>
+<body>
+
+<div id="grain"></div>
+<div id="spotlight"></div>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="marquee-track">
+    <span>🌱 100% Plastic-Free Packaging</span>
+    <span>⚡ Carbon-Neutral Delivery Sri Lanka Wide</span>
+    <span>♻️ Zero-Waste Certified Suppliers</span>
+    <span>🌱 100% Plastic-Free Packaging</span>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="header-top">
+    <div class="bar">
+      <a href="products_4.html" class="logo">
+        <span class="mark">Soba</span>
+        <span class="sub">MARKET</span>
+      </a>
+      
+      <div class="search-group">
+        <input type="text" id="productSearch" placeholder="Search eco products (e.g. Toothbrush, Soap)..." oninput="filterProducts()">
+        <button class="search-go">🔍</button>
+      </div>
+
+      <div class="bar-right">
+        <button class="cart-btn" onclick="toggleCart()">
+          🛒 <span>Cart</span>
+          <span class="cart-count" id="cartCount">0</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="header-nav">
+    <div class="bar">
+      <nav>
+        <a href="products_4.html">Home</a>
+        <a href="products_4.html" class="active">Shop</a>
+        <a href="#">About</a>
+        <a href="#">Reviews</a>
+        <a href="#">Contact</a>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<!-- Hero Poster Banner -->
+<section class="page-banner">
+  <div class="page-banner-card">
+    <span class="eyebrow">✦ Sustainable Collection V2</span>
+    <h1>Explore Eco Essentials</h1>
+    <p>Every single item is hand-picked for maximum sustainability impact—100% biodegradable, ethically sourced, and zero-plastic guaranteed.</p>
+  </div>
+</section>
+
+<!-- Main Products Section -->
+<main class="shop-shell">
+  <!-- Filters -->
+  <div class="filter-row">
+    <div class="filter-group">
+      <span class="filter-group-label">Category:</span>
+      <button class="chip active" onclick="setCategory('all', this)">All Items</button>
+      <button class="chip" onclick="setCategory('personal', this)">Personal Care</button>
+      <button class="chip" onclick="setCategory('kitchen', this)">Kitchen & Dining</button>
+      <button class="chip" onclick="setCategory('lifestyle', this)">Lifestyle</button>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-group-label">Sort By:</span>
+      <select class="select-filter" id="sortSelect" onchange="filterProducts()">
+        <option value="featured">Featured</option>
+        <option value="low">Price: Low to High</option>
+        <option value="high">Price: High to Low</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h2>Catalog Showcase</h2>
+    <span class="count" id="itemCount">Showing all items</span>
+  </div>
+
+  <!-- Dynamic Product Grid -->
+  <div class="grid" id="productGrid"></div>
+</main>
+
+
+<!-- ===== Product Details Popup (ADDED — existing cart remains unchanged) ===== -->
+<div class="product-modal-overlay" id="productModalOverlay" onclick="closeProductModal(event)">
+  <div class="product-modal" onclick="event.stopPropagation()">
+    <button class="product-modal-close" onclick="closeProductModal()">✕</button>
+    <div class="product-modal-main">
+      <div class="product-modal-visual">
+        <span class="product-modal-cert" id="modalCert">Sustainable Choice</span>
+        <div class="product-modal-icon" id="modalIcon">🌱</div>
+        <div class="product-modal-visual-note" id="modalSaved">Designed to reduce everyday plastic waste</div>
+      </div>
+      <div class="product-modal-info">
+        <div class="product-modal-category" id="modalCategory">Personal Care</div>
+        <h2 id="modalName">Product Name</h2>
+        <div class="product-modal-subtitle" id="modalSubtitle">Eco-friendly everyday essential</div>
+        <div class="product-modal-rating">
+          <div class="product-modal-stars" id="modalStars">★★★★★</div>
+          <span id="modalRatingText">4.9 / 5 · 128 reviews</span>
+        </div>
+        <p class="product-modal-description" id="modalDescription"></p>
+        <div class="product-modal-highlights" id="modalHighlights"></div>
+        <div class="product-modal-price-row">
+          <div class="product-modal-price" id="modalPrice">LKR 0</div>
+          <button class="product-modal-add" id="modalAddBtn" onclick="addCurrentModalProduct()">
+            Add to Cart +
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="product-reviews">
+      <div class="product-reviews-head">
+        <h3>Customer Reviews</h3>
+        <span id="modalReviewSummary">Verified customer feedback</span>
+      </div>
+      <div class="review-grid" id="modalReviews"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Cart Drawer -->
+<div class="overlay" id="overlay" onclick="toggleCart()"></div>
+<div class="drawer" id="cartDrawer">
+  <div class="drawer-head">
+    <h2>Your Eco Basket</h2>
+    <button class="drawer-close" onclick="toggleCart()">✕</button>
+  </div>
+  <div class="drawer-body" id="cartItems">
+    <p style="text-align: center; color: rgba(255,255,255,0.5); margin-top: 40px;">Your cart is currently empty.</p>
+  </div>
+  <div class="drawer-foot">
+    <div class="cart-total-row">
+      <span>Total Amount:</span>
+      <span class="cart-total-price" id="cartTotal">LKR 0</span>
+    </div>
+    <button class="checkout-btn" onclick="goToCheckout()">Proceed to Checkout</button>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-col">
+      <span class="footer-title">Soba Zero-Waste</span>
+      <p style="color: rgba(255,255,255,0.6); line-height: 1.6;">Empowering sustainable living with high quality, plastic-free everyday essentials.</p>
+    </div>
+    <div class="footer-col">
+      <span class="footer-title">Shop</span>
+      <a href="#">Personal Care</a>
+      <a href="#">Zero Waste Kitchen</a>
+      <a href="#">Home & Living</a>
+    </div>
+    <div class="footer-col">
+      <span class="footer-title">Impact</span>
+      <a href="#">Our Mission</a>
+      <a href="#">Carbon Offsets</a>
+      <a href="#">Supplier Ethics</a>
+    </div>
+    <div class="footer-col">
+      <span class="footer-title">Help</span>
+      <a href="#">Shipping Policy</a>
+      <a href="#">Returns</a>
+      <a href="#">Contact Us</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Product Catalog Data
+  const products = [
+    { id: 1, name: "Organic Bamboo Toothbrush", category: "personal", price: 450, icon: "🪥", cert: "100% Compostable", saved: "1 Plastic Brush" },
+    { id: 2, name: "Solid Shampoo Bar (Citrus)", category: "personal", price: 1200, icon: "🧼", cert: "Zero Waste", saved: "2 Shampoo Bottles" },
+    { id: 3, name: "Stainless Steel Bento Box", category: "kitchen", price: 3400, icon: "🍱", cert: "Plastic-Free", saved: "150 Plastic Bags" },
+    { id: 4, name: "Reusable Beeswax Food Wraps", category: "kitchen", price: 1800, icon: "🐝", cert: "Organic Cotton", saved: "3 Cling Wraps" },
+    { id: 5, name: "Insulated Glass Water Bottle", category: "lifestyle", price: 2900, icon: "🍾", cert: "BPA-Free", saved: "300 Plastic Bottles" },
+    { id: 6, name: "Heavy Duty Hemp Grocery Tote", category: "lifestyle", price: 1450, icon: "🛍️", cert: "Fair Trade", saved: "50 Plastic Bags" },
+    { id: 7, name: "Natural Loofah Dish Scrubber", category: "kitchen", price: 350, icon: "🧽", cert: "100% Plant Based", saved: "5 Synthetic Sponges" },
+    { id: 8, name: "Refillable Liquid Soap Container", category: "personal", price: 2200, icon: "🧴", cert: "Zero Waste", saved: "10 Refill Packs" }
+  ];
+
+  let cart = [];
+  let selectedCategory = 'all';
+
+
+  /* ===== Product Popup Data & Logic (ADDED) ===== */
+  const productDetails = {
+    1: {
+      subtitle: "Natural daily care with a zero-waste finish.",
+      rating: "4.9 / 5 · 128 reviews",
+      description: "A durable bamboo toothbrush designed for a cleaner routine with less plastic. The simple natural handle feels comfortable in hand and is made for everyday brushing.",
+      highlights: [["Material", "Bamboo handle"], ["End of life", "Compostable handle"], ["Impact", "1 plastic brush saved"], ["Best for", "Daily brushing"]],
+      reviews: [["★★★★★", "Feels great and looks beautiful. I love replacing plastic with something this simple.", "Nimali R."], ["★★★★★", "Good quality and arrived neatly packed without plastic.", "Kasun P."], ["★★★★☆", "A very nice sustainable option for my everyday routine.", "Ayesha M."]]
+    },
+    2: {
+      subtitle: "Plastic-free hair care, concentrated into one bar.",
+      rating: "4.8 / 5 · 96 reviews",
+      description: "A concentrated citrus shampoo bar that helps remove the need for bulky plastic shampoo bottles. Rich, refreshing and convenient for travel.",
+      highlights: [["Scent", "Fresh citrus"], ["Packaging", "Plastic-free"], ["Impact", "2 bottles avoided"], ["Best for", "Home & travel"]],
+      reviews: [["★★★★★", "The citrus scent is fantastic and it lasts much longer than I expected.", "Tharushi K."], ["★★★★★", "Perfect for travel. No bottle leaks and no plastic waste.", "Dilan S."], ["★★★★☆", "Leaves my hair feeling clean without a huge bottle.", "Madu P."]]
+    },
+    3: {
+      subtitle: "Built for everyday meals, made to last.",
+      rating: "4.9 / 5 · 74 reviews",
+      description: "A sturdy stainless steel bento box for lunches, meal prep and everyday carrying. Durable construction makes it a long-term alternative to disposable food containers.",
+      highlights: [["Material", "Stainless steel"], ["Use", "Lunch & meal prep"], ["Impact", "150 plastic bags saved"], ["Best for", "Daily carry"]],
+      reviews: [["★★★★★", "Solid, spacious and easy to clean. This replaced several disposable containers.", "Ravindu T."], ["★★★★★", "Looks premium and feels like it will last for years.", "Sahan D."], ["★★★★★", "Great size for office lunches.", "Nethmi A."]]
+    },
+    4: {
+      subtitle: "Reusable food protection without single-use cling wrap.",
+      rating: "4.8 / 5 · 61 reviews",
+      description: "Reusable beeswax food wraps made for covering bowls, fruit, sandwiches and leftovers. A practical kitchen swap that can be washed and reused.",
+      highlights: [["Material", "Organic cotton + beeswax"], ["Reusable", "Yes"], ["Impact", "3 cling wraps saved"], ["Best for", "Kitchen storage"]],
+      reviews: [["★★★★★", "These are now a permanent part of my kitchen.", "Shalini R."], ["★★★★☆", "Easy to shape around bowls and very useful for leftovers.", "Ishan P."], ["★★★★★", "Much nicer than constantly buying plastic wrap.", "Dewmi K."]]
+    },
+    5: {
+      subtitle: "A reusable bottle for your everyday adventures.",
+      rating: "4.9 / 5 · 109 reviews",
+      description: "An insulated glass water bottle designed for everyday hydration. Its reusable design helps reduce reliance on disposable plastic bottles.",
+      highlights: [["Material", "Insulated glass"], ["Feature", "BPA-free"], ["Impact", "300 bottles saved"], ["Best for", "Work & travel"]],
+      reviews: [["★★★★★", "Keeps my drink fresh and feels really premium.", "Chamod L."], ["★★★★★", "I carry it everywhere now.", "Hiruni S."], ["★★★★☆", "Great everyday bottle with a clean design.", "Mihiranga P."]]
+    },
+    6: {
+      subtitle: "A strong everyday tote for the plastic-bag swap.",
+      rating: "4.7 / 5 · 52 reviews",
+      description: "A durable hemp grocery tote made for repeated shopping trips. Strong handles and a roomy shape make it a dependable reusable alternative.",
+      highlights: [["Material", "Hemp"], ["Certification", "Fair Trade"], ["Impact", "50 bags saved"], ["Best for", "Groceries"]],
+      reviews: [["★★★★★", "Very strong bag. I use it for heavy groceries.", "Praveen J."], ["★★★★☆", "Roomy and comfortable to carry.", "Fathima N."], ["★★★★★", "Great replacement for supermarket plastic bags.", "Yasith P."]]
+    },
+    7: {
+      subtitle: "Plant-based scrubbing power for your kitchen.",
+      rating: "4.8 / 5 · 43 reviews",
+      description: "A natural loofah dish scrubber made from plant-based fibres. It is a simple swap for synthetic kitchen sponges and is designed for everyday washing.",
+      highlights: [["Material", "Natural loofah"], ["Base", "Plant-based"], ["Impact", "5 synthetic sponges saved"], ["Best for", "Dish washing"]],
+      reviews: [["★★★★★", "Works surprisingly well on everyday dishes.", "Anuki T."], ["★★★★★", "I wanted a plastic-free sponge and this does the job.", "Rukshan P."], ["★★★★☆", "Simple, natural and useful.", "Sewmi D."]]
+    },
+    8: {
+      subtitle: "A refill-first approach to everyday hand soap.",
+      rating: "4.8 / 5 · 68 reviews",
+      description: "A durable refillable soap container that lets you reuse the same dispenser instead of buying a new plastic container every time.",
+      highlights: [["Design", "Refillable"], ["Certification", "Zero Waste"], ["Impact", "10 refill packs"], ["Best for", "Bathroom & kitchen"]],
+      reviews: [["★★★★★", "Looks great on the sink and makes refills much easier.", "Dilki M."], ["★★★★☆", "Good quality and easy to clean.", "Kavindu S."], ["★★★★★", "A simple change that makes a big difference.", "Rashmi W."]]
+    }
+  };
+
+  let currentModalProductId = null;
+
+  function openProductModal(id) {
+    const p = products.find(item => item.id === id);
+    const d = productDetails[id];
+    if (!p || !d) return;
+
+    currentModalProductId = id;
+    document.getElementById('modalCert').innerText = p.cert;
+    document.getElementById('modalIcon').innerText = p.icon;
+    document.getElementById('modalSaved').innerText = `🌱 ${p.saved}`;
+    document.getElementById('modalCategory').innerText = p.category;
+    document.getElementById('modalName').innerText = p.name;
+    document.getElementById('modalSubtitle').innerText = d.subtitle;
+    document.getElementById('modalStars').innerText = d.rating.startsWith('4.') ? '★★★★★' : '★★★★★';
+    document.getElementById('modalRatingText').innerText = d.rating;
+    document.getElementById('modalDescription').innerText = d.description;
+    document.getElementById('modalPrice').innerText = `LKR ${p.price.toLocaleString()}`;
+
+    document.getElementById('modalHighlights').innerHTML = d.highlights.map(h => `
+      <div class="product-highlight">
+        <b>${h[0]}</b><span>${h[1]}</span>
+      </div>
+    `).join('');
+
+    document.getElementById('modalReviews').innerHTML = d.reviews.map(r => `
+      <div class="review-card">
+        <div class="stars">${r[0]}</div>
+        <p>${r[1]}</p>
+        <strong>— ${r[2]}</strong>
+      </div>
+    `).join('');
+
+    const addBtn = document.getElementById('modalAddBtn');
+    const existing = cart.find(item => item.id === id);
+    addBtn.innerText = existing ? `Add Another +` : `Add to Cart +`;
+
+    document.getElementById('productModalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeProductModal(event) {
+    if (event && event.target !== document.getElementById('productModalOverlay')) return;
+    document.getElementById('productModalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function addCurrentModalProduct() {
+    if (!currentModalProductId) return;
+    addToCart(currentModalProductId);
+    const btn = document.getElementById('modalAddBtn');
+    btn.innerText = 'Added ✓';
+    setTimeout(() => {
+      btn.innerText = 'Add Another +';
+    }, 1100);
+  }
+
+  // Clicking any product card opens its details. Existing buttons keep their original actions.
+  document.getElementById('productGrid').addEventListener('click', function(e) {
+    if (e.target.closest('button')) return;
+    const card = e.target.closest('.card');
+    if (!card) return;
+    const id = Number(card.dataset.productId);
+    if (id) openProductModal(id);
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeProductModal();
+  });
+
+
+  function loadSavedCart() {
+    try {
+      const stored = localStorage.getItem('soba_cart');
+      if (stored) cart = JSON.parse(stored);
+    } catch(e) {
+      cart = [];
+    }
+  }
+
+  function renderProducts(items) {
+    const grid = document.getElementById('productGrid');
+    grid.innerHTML = '';
+    
+    document.getElementById('itemCount').innerText = `Showing ${items.length} items`;
+
+    items.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.productId = p.id;
+      card.setAttribute('title', 'Click to view product details & reviews');
+      card.innerHTML = `
+        <div class="card-art">
+          <span class="card-cert">${p.cert}</span>
+          <button class="card-wish" onclick="toggleWish(this)">♥</button>
+          <span class="emoji-icon">${p.icon}</span>
+          <span class="poster-price-tag">LKR ${p.price.toLocaleString()}</span>
+        </div>
+        <div class="card-body">
+          <div class="card-meta">${p.category}</div>
+          <h3>${p.name}</h3>
+          <div class="card-saved">🌱 Saves ${p.saved}</div>
+          <div class="card-foot">
+            <button class="add-btn" onclick="addToCart(${p.id}, this)">
+              <span>Add to Cart</span> +
+            </button>
+          </div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function setCategory(cat, btn) {
+    selectedCategory = cat;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    filterProducts();
+  }
+
+  function filterProducts() {
+    const query = document.getElementById('productSearch').value.toLowerCase();
+    const sort = document.getElementById('sortSelect').value;
+
+    let filtered = products.filter(p => {
+      const matchCat = selectedCategory === 'all' || p.category === selectedCategory;
+      const matchSearch = p.name.toLowerCase().includes(query);
+      return matchCat && matchSearch;
+    });
+
+    if (sort === 'low') filtered.sort((a,b) => a.price - b.price);
+    if (sort === 'high') filtered.sort((a,b) => b.price - a.price);
+
+    renderProducts(filtered);
+  }
+
+  function addToCart(id, btn) {
+    const product = products.find(p => p.id === id);
+    const existing = cart.find(item => item.id === id);
+
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      cart.push({ ...product, quantity: 1, selected: false });
+    }
+
+    if (btn) {
+      btn.classList.add('added');
+      btn.innerHTML = '<span>Added ✓</span>';
+      setTimeout(() => {
+        btn.classList.remove('added');
+        btn.innerHTML = '<span>Add to Cart</span> +';
+      }, 1200);
+    }
+
+    updateCartDrawer();
+  }
+
+  function changeQuantity(id, delta) {
+    const item = cart.find(i => i.id === id);
+    if (!item) return;
+
+    if (delta === -1 && item.quantity <= 1) {
+      return;
+    }
+
+    item.quantity += delta;
+    updateCartDrawer();
+  }
+
+  function removeFromCart(id) {
+    cart = cart.filter(item => item.id !== id);
+    updateCartDrawer();
+  }
+
+  // Bulk Selection Logic
+  function toggleItemSelect(id, isChecked) {
+    const item = cart.find(i => i.id === id);
+    if (item) {
+      item.selected = isChecked;
+      updateCartDrawer();
+    }
+  }
+
+  function toggleSelectAll(isChecked) {
+    cart.forEach(item => item.selected = isChecked);
+    updateCartDrawer();
+  }
+
+  function deleteSelected() {
+    cart = cart.filter(item => !item.selected);
+    updateCartDrawer();
+  }
+
+  function updateCartDrawer() {
+    try {
+      localStorage.setItem('soba_cart', JSON.stringify(cart));
+    } catch(e) {}
+
+    const cartContainer = document.getElementById('cartItems');
+    const cartCountEl = document.getElementById('cartCount');
+    const cartTotalEl = document.getElementById('cartTotal');
+
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    cartCountEl.innerText = totalItems;
+    cartTotalEl.innerText = `LKR ${totalPrice.toLocaleString()}`;
+
+    if (cart.length === 0) {
+      cartContainer.innerHTML = '<p style="text-align: center; color: rgba(255,255,255,0.5); margin-top: 40px;">Your cart is currently empty.</p>';
+      return;
+    }
+
+    const allSelected = cart.length > 0 && cart.every(item => item.selected);
+    const selectedCount = cart.filter(item => item.selected).length;
+
+    const bulkHeaderHtml = `
+      <div class="cart-bulk-bar">
+        <label class="cart-bulk-label">
+          <input type="checkbox" ${allSelected ? 'checked' : ''} onchange="toggleSelectAll(this.checked)">
+          Select All
+        </label>
+        <button class="delete-selected-btn" ${selectedCount === 0 ? 'disabled' : ''} onclick="deleteSelected()">
+          🗑️ Delete Selected (${selectedCount})
+        </button>
+      </div>
+    `;
+
+    const itemsHtml = cart.map(item => `
+      <div class="cart-item">
+        <input type="checkbox" class="cart-item-checkbox" ${item.selected ? 'checked' : ''} onchange="toggleItemSelect(${item.id}, this.checked)">
+        <div class="art">${item.icon}</div>
+        <div class="info">
+          <h4>${item.name}</h4>
+          <div class="sub">LKR ${(item.price * item.quantity).toLocaleString()}</div>
+          <div class="qty-controls">
+            <button class="qty-btn" ${item.quantity <= 1 ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : ''} onclick="changeQuantity(${item.id}, -1)">-</button>
+            <span class="qty-val">${item.quantity}</span>
+            <button class="qty-btn" onclick="changeQuantity(${item.id}, 1)">+</button>
+          </div>
+        </div>
+        <button class="remove-btn" onclick="removeFromCart(${item.id})" title="Remove Item">🗑️</button>
+      </div>
+    `).join('');
+
+    cartContainer.innerHTML = bulkHeaderHtml + itemsHtml;
+  }
+
+  function goToCheckout() {
+    if (cart.length === 0) {
+      alert("Your cart is currently empty! Please add items before proceeding.");
+      return;
+    }
+    window.location.href = 'checkout.html';
+  }
+
+  function toggleCart() {
+    document.getElementById('cartDrawer').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('open');
+  }
+
+  function toggleWish(btn) {
+    btn.classList.toggle('active');
+  }
+
+  // Mouse Spotlight Motion
+  window.addEventListener('mousemove', e => {
+    document.documentElement.style.setProperty('--mx', e.clientX + 'px');
+    document.documentElement.style.setProperty('--my', e.clientY + 'px');
+  });
+
+  // Initial Load
+  loadSavedCart();
+  renderProducts(products);
+  updateCartDrawer();
+</script>
+</body>
+</html>

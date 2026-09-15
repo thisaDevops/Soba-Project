@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — Soba</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --neo:#B8FF3D;
+    --forest:#3B7A34;
+    --deep:#0b2b20;
+    --deep2:#123d2c;
+    --ink:#0c1f14;
+    --paper:#F9F8F3;
+    --logo-white:#F4F8F1;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; min-height:100vh; font-family:'Work Sans', sans-serif;
+    color:#F4F2E9; background:var(--deep);
+    -webkit-font-smoothing:antialiased;
+    display:flex; flex-direction:column;
+  }
+  h1,h2,h3{font-family:'Fraunces', serif; font-weight:500; letter-spacing:-0.01em; margin:0;}
+
+  /* ===== Ambient cinematic background ===== */
+  .bg-scene{
+    position:fixed; inset:0; z-index:0; overflow:hidden;
+    background:
+      radial-gradient(1200px 700px at 18% -8%, rgba(184,255,61,.14), transparent 55%),
+      radial-gradient(900px 600px at 85% 90%, rgba(184,255,61,.10), transparent 55%),
+      linear-gradient(180deg, #071a12 0%, #0b2b20 55%, #081e16 100%);
+  }
+  .bg-noise{
+    position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.05; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .bg-glow{
+    position:fixed; z-index:0; pointer-events:none; border-radius:50%;
+    filter:blur(90px); opacity:.35;
+  }
+  .bg-glow.g1{width:420px;height:420px; background:var(--neo); top:-140px; left:-140px;}
+  .bg-glow.g2{width:380px;height:380px; background:#3B7A34; bottom:-120px; right:-100px;}
+
+  /* ===== Top nav ===== */
+  header{position:relative; z-index:10; padding:22px 5vw;}
+  .bar{
+    max-width:1300px; margin:0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  
+  /* UPDATED LOGO STYLING MATCHING IMAGE */
+  .logo{
+    display:inline-flex; align-items:baseline; gap:12px; cursor:pointer; text-decoration:none;
+  }
+  .logo .mark{
+    font-family:'Fraunces', serif; font-weight:700; font-size:32px; color:var(--logo-white);
+    letter-spacing:-0.02em; line-height:1;
+  }
+  .logo .sub{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--neo); font-weight:700;
+  }
+
+  nav{display:flex; gap:30px; align-items:center;}
+  nav a{
+    color:rgba(244,242,233,.78); text-decoration:none; font-size:14px; font-weight:500;
+    border-bottom:2px solid transparent; padding-bottom:3px; transition:all .2s;
+  }
+  nav a:hover{color:#fff; border-color:var(--neo);}
+ 
+  .nav-toggle{display:none; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); border-radius:9px; width:38px; height:38px; color:#fff; font-size:16px; cursor:pointer;}
+
+  /* ===== Login stage ===== */
+  main{
+    position:relative; z-index:5; flex:1;
+    display:flex; align-items:center; justify-content:center;
+    padding:40px 20px 70px;
+  }
+  .auth-card{
+    position:relative; width:400px; max-width:100%;
+    background:linear-gradient(160deg, rgba(18,61,44,.62), rgba(8,26,19,.78));
+    border:1px solid rgba(184,255,61,.16);
+    border-radius:24px; padding:42px 34px 32px;
+    box-shadow:0 30px 90px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
+    backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
+  }
+  .auth-head{text-align:center; margin-bottom:28px;}
+  .leaf-mark{font-size:32px; filter:drop-shadow(0 0 14px rgba(184,255,61,.5));}
+  .auth-head h1{font-size:32px; color:#fff; margin-top:12px;}
+  .auth-head p{font-size:13.5px; color:rgba(244,242,233,.6); margin-top:8px; line-height:1.55;}
+
+  #google-signin-btn{display:flex; justify-content:center;}
+  .google-btn{
+    width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+    background:#fff; border:1px solid rgba(255,255,255,.5); border-radius:11px;
+    padding:13px; font-size:14px; font-weight:600; color:#2B2D2F; cursor:pointer;
+    font-family:'Work Sans', sans-serif; transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .google-btn:hover{transform:translateY(-1px); box-shadow:0 10px 24px rgba(0,0,0,.28);}
+  .google-g{font-weight:700; font-size:16px;}
+
+  .divider{
+    display:flex; align-items:center; gap:12px; margin:22px 0;
+    font-size:11px; color:rgba(244,242,233,.42); text-transform:uppercase; letter-spacing:0.1em;
+  }
+  .divider::before, .divider::after{content:""; flex:1; height:1px; background:rgba(255,255,255,.14);}
+
+  .field-label{font-size:12px; font-weight:600; color:rgba(244,242,233,.75); margin-bottom:7px; display:block;}
+  .field-wrap{position:relative; margin-bottom:18px;}
+  .field-input{
+    width:100%; border:none; border-bottom:1.5px solid rgba(255,255,255,.24);
+    padding:10px 30px 10px 2px; background:transparent; color:#fff;
+    font-size:14.5px; font-family:'Work Sans', sans-serif; transition:border-color .2s ease;
+  }
+  .field-input::placeholder{color:rgba(244,242,233,.4);}
+  .field-input:focus{outline:none; border-color:var(--neo);}
+  .field-icon{position:absolute; right:2px; top:38px; font-size:15px; opacity:.6; pointer-events:none;}
+
+  .auth-row{display:flex; align-items:center; justify-content:space-between; margin:2px 0 24px; font-size:12.5px;}
+  .remember-me{display:flex; align-items:center; gap:7px; color:rgba(244,242,233,.75); cursor:pointer;}
+  .remember-me input{accent-color:var(--neo); width:14px; height:14px; cursor:pointer;}
+  .forgot-link{color:rgba(244,242,233,.6); cursor:pointer; text-decoration:none; transition:color .15s;}
+  .forgot-link:hover{color:var(--neo);}
+
+  .submit-btn{
+    width:100%; background:linear-gradient(135deg, var(--neo), #8fe04f); color:var(--ink); border:none; border-radius:11px;
+    padding:14px; font-size:15px; font-weight:700; cursor:pointer; font-family:'Work Sans', sans-serif;
+    box-shadow:0 16px 34px rgba(184,255,61,.24); transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .submit-btn:hover{transform:translateY(-1px); box-shadow:0 20px 40px rgba(184,255,61,.34);}
+
+  .auth-foot{text-align:center; margin-top:20px; font-size:13px; color:rgba(244,242,233,.55);}
+  .auth-link{color:var(--neo); cursor:pointer; font-weight:600;}
+  .auth-link:hover{text-decoration:underline;}
+  .fine-print{text-align:center; margin-top:14px; font-size:11.5px; color:rgba(244,242,233,.4); line-height:1.5;}
+
+  .toast{
+    position:fixed; top:24px; left:50%; transform:translateX(-50%) translateY(-20px);
+    background:rgba(184,255,61,.14); border:1px solid rgba(184,255,61,.4); color:#e4ffc7;
+    padding:12px 22px; border-radius:99px; font-size:13.5px; z-index:50;
+    opacity:0; pointer-events:none; transition:opacity .3s ease, transform .3s ease;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  @media (max-width:820px){
+    nav{display:none; position:absolute; top:100%; left:5vw; right:5vw; margin-top:12px;
+      background:rgba(8,26,19,.96); border:1px solid rgba(184,255,61,.16); border-radius:16px;
+      flex-direction:column; align-items:flex-start; gap:0; padding:8px; backdrop-filter:blur(20px);}
+    nav.open{display:flex;}
+    nav a{width:100%; padding:12px 10px; border-bottom:1px solid rgba(255,255,255,.06);}
+    .nav-toggle{display:flex; align-items:center; justify-content:center;}
+    header .bar{position:relative;}
+  }
+  @media (max-width:480px){
+    .auth-card{padding:32px 22px 26px; border-radius:18px;}
+    .auth-head h1{font-size:27px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-scene"></div>
+<div class="bg-noise"></div>
+<div class="bg-glow g1"></div>
+<div class="bg-glow g2"></div>
+
+<div class="toast" id="toast"></div>
+
+<header>
+  <div class="bar">
+    <!-- UPDATED HTML LOGO STRUCTURE -->
+    <a class="logo" href="Soba_Cinematic_Home_FIXED.html">
+      <span class="mark">Soba</span>
+      <span class="sub">sobadahama · nature</span>
+    </a>
+    <nav id="mainNav">
+      <a href="Soba_Cinematic_Home_F.html#home-top">Home</a>
+      <a href="products.html">Shop</a>
+      <a href="Soba_Cinematic_Home_F.html#about-section">About</a>
+      <a href="Soba_Cinematic_Home_F.html#contact-section">Contact</a>
+    </nav>
+    <button class="nav-toggle" id="navToggle" onclick="document.getElementById('mainNav').classList.toggle('open')" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<main>
+  <div class="auth-card">
+    <div class="auth-head">
+     
+      <h1 id="formTitle">Login</h1>
+      <p id="formSub">Sign in to keep your eco-impact and orders saved to you.</p>
+    </div>
+
+    <div id="google-signin-btn"></div>
+    <button class="google-btn" id="google-fallback-btn" onclick="signInWithGoogle()" style="display:none;">
+      <span class="google-g">G</span> Continue with Google
+    </button>
+
+    <div class="divider">or with email</div>
+
+    <form id="authForm" onsubmit="return handleSubmit(event)">
+      <div class="field-wrap" id="nameWrap" style="display:none;">
+        <label class="field-label">Full name</label>
+        <input class="field-input" id="auth-name" type="text" placeholder="Your name">
+      </div>
+      <div class="field-wrap">
+        <label class="field-label">Email</label>
+        <input class="field-input" id="auth-email" type="email" placeholder="you@example.com" required>
+        <span class="field-icon">✉️</span>
+      </div>
+      <div class="field-wrap" style="margin-bottom:0;">
+        <label class="field-label">Password</label>
+        <input class="field-input" id="auth-password" type="password" placeholder="••••••••" required>
+        <span class="field-icon">🔒</span>
+      </div>
+
+      <div class="auth-row" id="loginExtras">
+        <label class="remember-me"><input type="checkbox" id="auth-remember"> Remember me</label>
+        <span class="forgot-link" onclick="showToast('Password reset isn\'t wired up in this prototype yet 🌿')">Forgot password?</span>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">Login</button>
+    </form>
+
+    <div class="auth-foot" id="switchModeRow">
+      Don't have an account? <span class="auth-link" onclick="toggleMode()">Register</span>
+    </div>
+    <div class="fine-print">This is a course prototype — no real account or password is stored anywhere.</div>
+  </div>
+</main>
+
+<script>
+  let mode = 'login'; // or 'register'
+
+  function toggleMode(){
+    mode = mode === 'login' ? 'register' : 'login';
+    const isRegister = mode === 'register';
+    document.getElementById('formTitle').textContent = isRegister ? 'Create account' : 'Login';
+    document.getElementById('formSub').textContent = isRegister
+      ? 'Join Soba to track your plastic-avoided total across every order.'
+      : 'Sign in to keep your eco-impact and orders saved to you.';
+    document.getElementById('nameWrap').style.display = isRegister ? 'block' : 'none';
+    document.getElementById('loginExtras').style.display = isRegister ? 'none' : 'flex';
+    document.getElementById('submitBtn').textContent = isRegister ? 'Create account' : 'Login';
+    document.getElementById('switchModeRow').innerHTML = isRegister
+      ? `Already have an account? <span class="auth-link" onclick="toggleMode()">Login</span>`
+      : `Don't have an account? <span class="auth-link" onclick="toggleMode()">Register</span>`;
+  }
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  function completeSignIn(name, email){
+    try{
+      localStorage.setItem('soba_user', JSON.stringify({name, email}));
+    }catch(e){ /* localStorage may be unavailable — sign-in still proceeds */ }
+    showToast(`Welcome${name ? ', ' + name : ''} 🌿 redirecting…`);
+    setTimeout(() => { window.location.href = 'Soba_Cinematic_Home_FIXED.html'; }, 900);
+  }
+
+  function handleSubmit(e){
+    e.preventDefault();
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    if(!email || !password){ showToast('Please fill in your email and password.'); return false; }
+    let name;
+    if(mode === 'register'){
+      name = document.getElementById('auth-name').value.trim();
+      if(!name){ showToast('Please enter your name to register.'); return false; }
+    }else{
+      name = email.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+    completeSignIn(name, email);
+    return false;
+  }
+
+  function signInWithGoogle(){
+    completeSignIn("Nimal Perera", "nimal.perera@gmail.com");
+  }
+  function handleGoogleCredential(response){
+    try{
+      const payload = JSON.parse(atob(response.credential.split('.')[1]));
+      completeSignIn(payload.name || payload.email, payload.email);
+    }catch(e){
+      signInWithGoogle();
+    }
+  }
+  function initGoogleSignIn(){
+    const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+    const target = document.getElementById('google-signin-btn');
+    const fallback = document.getElementById('google-fallback-btn');
+    if(GOOGLE_CLIENT_ID.startsWith('YOUR_') || !window.google || !window.google.accounts){
+      fallback.style.display = 'flex';
+      return;
+    }
+    try{
+      google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
+      google.accounts.id.renderButton(target, { theme:'filled_white', size:'large', width:332, shape:'pill', text:'continue_with' });
+    }catch(e){
+      fallback.style.display = 'flex';
+    }
+  }
+  window.addEventListener('load', () => setTimeout(initGoogleSignIn, 300));
+</script>
+</body>
+</html>
