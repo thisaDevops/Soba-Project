@@ -705,7 +705,7 @@ if (empty($_SESSION['u_id'])) {
             <svg class="icon" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             <span>Saved Wishlist</span>
           </div>
-          <span class="badge-count">3</span>
+          <span class="badge-count" id="dashWishlistCount">0</span>
         </div>
       </div>
 
@@ -951,19 +951,8 @@ if (empty($_SESSION['u_id'])) {
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px;">
-            <div style="background: rgba(255,255,255,0.03); border:1px solid var(--line); border-radius: 14px; padding: 16px; text-align: center;">
-              <div style="font-size: 38px; margin-bottom: 8px;">🥥</div>
-              <h4 style="color:#fff; font-size:14px; margin-bottom:4px;">Handcrafted Coconut Bowl</h4>
-              <div class="mono" style="color:var(--neo); font-weight:700; margin-bottom: 12px;">Rs. 890</div>
-              <a href="cart.php" class="btn-sm-action" style="display:block; text-align:center; border-color:var(--neo); color:var(--neo);">Move to Cart</a>
-            </div>
-            <div style="background: rgba(255,255,255,0.03); border:1px solid var(--line); border-radius: 14px; padding: 16px; text-align: center;">
-              <div style="font-size: 38px; margin-bottom: 8px;">🪥</div>
-              <h4 style="color:#fff; font-size:14px; margin-bottom:4px;">Charcoal Bamboo Toothbrush (4-Pack)</h4>
-              <div class="mono" style="color:var(--neo); font-weight:700; margin-bottom: 12px;">Rs. 1,200</div>
-              <a href="cart.php" class="btn-sm-action" style="display:block; text-align:center; border-color:var(--neo); color:var(--neo);">Move to Cart</a>
-            </div>
+          <div id="wishlistGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px;">
+            <!-- Populated dynamically via renderUserWishlist() -->
           </div>
         </div>
       </div>
@@ -1073,6 +1062,22 @@ if (empty($_SESSION['u_id'])) {
 
         updateLiveSummary();
 
+        // Sync full profile into localStorage so checkout.php can auto-fill
+        try {
+          const existing = JSON.parse(localStorage.getItem('soba_user') || '{}');
+          localStorage.setItem('soba_user', JSON.stringify({
+            ...existing,
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            phone: u.phone || document.getElementById('dashPhone').value,
+            address: u.address || document.getElementById('dashAddress').value,
+            city: u.city || document.getElementById('dashCity').value,
+            postal: u.postal || document.getElementById('dashPostal').value,
+            role: existing.role || 'customer'
+          }));
+        } catch(e) {}
+
         // Render dynamic orders from DB
         if (Array.isArray(data.orders) && data.orders.length > 0) {
           const container = document.getElementById('userOrdersContainer');
@@ -1144,9 +1149,10 @@ if (empty($_SESSION['u_id'])) {
     }
   }
 
-  // On Page Load: Load user data and cart count
+  // On Page Load: Load user data, cart count and saved wishlist
   window.addEventListener('DOMContentLoaded', () => {
     loadUserProfileFromDB();
+    renderUserWishlist();
 
     try {
       // Read cart count from localStorage
@@ -1157,6 +1163,19 @@ if (empty($_SESSION['u_id'])) {
         document.getElementById('cartCount').textContent = count;
       }
     } catch(e) {}
+  });
+
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'soba_wishlist') {
+      renderUserWishlist();
+    }
+    if (e.key === 'soba_cart') {
+      try {
+        const cartItems = JSON.parse(e.newValue || '[]');
+        const count = Array.isArray(cartItems) ? cartItems.reduce((acc, it) => acc + (it.quantity || it.qty || 1), 0) : 0;
+        document.getElementById('cartCount').textContent = count;
+      } catch(err) {}
+    }
   });
 
   function updateLiveSummary() {
@@ -1193,6 +1212,7 @@ if (empty($_SESSION['u_id'])) {
     } else if (tabKey === 'wishlist') {
       const target = document.getElementById('tab-wishlist');
       if (target) target.classList.add('active');
+      renderUserWishlist();
     } else if (tabKey === 'vouchers') {
       const target = document.getElementById('tab-vouchers');
       if (target) target.classList.add('active');
@@ -1231,11 +1251,126 @@ if (empty($_SESSION['u_id'])) {
 
     // Persist profile
     try {
-      localStorage.setItem('soba_user', JSON.stringify({ name, email, phone, address, city, postal }));
+      const existing = JSON.parse(localStorage.getItem('soba_user') || '{}');
+      localStorage.setItem('soba_user', JSON.stringify({ ...existing, name, email, phone, address, city, postal }));
     } catch(err) {}
 
     showToast('Dashboard details saved successfully');
     return false;
+  }
+
+  // ========================================================
+  // USER WISHLIST DYNAMIC LOGIC
+  // ========================================================
+  function getStoredWishlist() {
+    try {
+      const raw = localStorage.getItem('soba_wishlist');
+      if (raw) return JSON.parse(raw);
+    } catch(e) {}
+    // Initial sample products matching mockup if none exist yet
+    return [
+      { id: 101, name: "Handcrafted Coconut Bowl", price: 890, icon: "🥥", image: "" },
+      { id: 102, name: "Charcoal Bamboo Toothbrush (4-Pack)", price: 1200, icon: "🪥", image: "" }
+    ];
+  }
+
+  function renderUserWishlist() {
+    const list = getStoredWishlist();
+    const badge = document.getElementById('dashWishlistCount');
+    if (badge) badge.textContent = list.length;
+
+    const grid = document.getElementById('wishlistGrid');
+    if (!grid) return;
+
+    if (list.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 48px 20px; background: rgba(255,255,255,0.02); border: 1px dashed var(--line); border-radius: 16px;">
+          <div style="font-size: 40px; margin-bottom: 12px;">💚</div>
+          <h3 style="font-size: 18px; color: #fff; margin-bottom: 6px;">Your Wishlist is Empty</h3>
+          <p style="font-size: 13.5px; color: rgba(244,242,233,0.6); margin-bottom: 18px;">Bookmark sustainable items from the product details page for future zero-waste purchases.</p>
+          <a href="products.php" class="btn-sm-action" style="display: inline-block; border-color: var(--neo); color: var(--neo); padding: 8px 18px;">Browse Products</a>
+        </div>
+      `;
+      return;
+    }
+
+    grid.innerHTML = list.map((item, idx) => {
+      const imgOrIcon = item.image 
+        ? `<img src="${item.image}" alt="${item.name}" style="width:64px;height:64px;object-fit:cover;border-radius:12px;margin:0 auto 10px;display:block;" onerror="this.style.display='none';this.nextElementSibling.style.display='block';"><span style="display:none;font-size:38px;margin-bottom:8px;">${item.icon || '🌱'}</span>`
+        : `<div style="font-size: 38px; margin-bottom: 8px;">${item.icon || '🌱'}</div>`;
+
+      const viewUrl = item.id > 100 ? 'products.php' : `product_details.php?id=${item.id}`;
+
+      return `
+        <div style="background: rgba(255,255,255,0.03); border:1px solid var(--line); border-radius: 14px; padding: 18px 16px; text-align: center; position: relative; display: flex; flex-direction: column; justify-content: space-between;">
+          <button type="button" onclick="removeFromWishlist(${idx})" title="Remove from wishlist" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); border-radius: 50%; width: 26px; height: 26px; color: rgba(255,255,255,0.6); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: all 0.2s;" onmouseover="this.style.color='#ff6b81'; this.style.borderColor='#ff6b81';" onmouseout="this.style.color='rgba(255,255,255,0.6)'; this.style.borderColor='rgba(255,255,255,0.14)';">&times;</button>
+          
+          <div>
+            ${imgOrIcon}
+            <a href="${viewUrl}" style="color:#fff; font-size:14px; font-weight: 600; margin-bottom:4px; display:block; text-decoration:none; line-height: 1.3;" onmouseover="this.style.color='var(--neo)'" onmouseout="this.style.color='#fff'">${item.name}</a>
+            <div class="mono" style="color:var(--neo); font-weight:700; margin-top: 6px; margin-bottom: 14px; font-size: 15px;">Rs. ${Number(item.price).toLocaleString()}</div>
+          </div>
+
+          <div>
+            <button type="button" class="btn-sm-action" style="width: 100%; text-align:center; border-color:var(--neo); color:var(--neo); padding: 8px 12px; font-weight: 600; cursor:pointer;" onclick="moveWishlistItemToCart(${idx})">Move to Cart</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function moveWishlistItemToCart(index) {
+    const list = getStoredWishlist();
+    if (index < 0 || index >= list.length) return;
+    const item = list[index];
+
+    try {
+      let cart = [];
+      const rawCart = localStorage.getItem('soba_cart');
+      if (rawCart) cart = JSON.parse(rawCart);
+
+      const existing = cart.find(c => Number(c.id) === Number(item.id));
+      if (existing) {
+        existing.quantity = (existing.quantity || 1) + 1;
+        existing.selected = true;
+      } else {
+        cart.push({
+          id: item.id,
+          name: item.name,
+          price: Number(item.price) || 0,
+          quantity: 1,
+          selected: true,
+          icon: item.icon || '🌱',
+          image: item.image || ''
+        });
+      }
+
+      localStorage.setItem('soba_cart', JSON.stringify(cart));
+
+      // Update header cart count
+      const totalCount = cart.reduce((acc, it) => acc + (it.quantity || 1), 0);
+      const cartCountEl = document.getElementById('cartCount');
+      if (cartCountEl) cartCountEl.textContent = totalCount;
+
+      // Remove from wishlist
+      list.splice(index, 1);
+      localStorage.setItem('soba_wishlist', JSON.stringify(list));
+      renderUserWishlist();
+
+      showToast(`"${item.name}" moved to your Cart! 🛒`);
+    } catch(err) {
+      console.error(err);
+      showToast('Error moving item to cart');
+    }
+  }
+
+  function removeFromWishlist(index) {
+    const list = getStoredWishlist();
+    if (index < 0 || index >= list.length) return;
+    const removed = list.splice(index, 1)[0];
+    localStorage.setItem('soba_wishlist', JSON.stringify(list));
+    renderUserWishlist();
+    showToast(`"${removed.name}" removed from Wishlist.`);
   }
 
   function verifyAccount() {

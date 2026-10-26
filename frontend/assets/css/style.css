@@ -362,39 +362,114 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   /* Header navigation bar */
   header {
-    padding: 10px 12px !important;
+    padding: 0 !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+    width: 100% !important;
   }
-  .header-top .bar,
-  header .bar,
-  .bar {
-    flex-direction: column !important;
-    align-items: stretch !important;
+  .header-top {
+    padding: 10px 14px !important;
+  }
+  .header-top .bar {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
     gap: 10px !important;
     padding: 0 !important;
+    width: 100% !important;
   }
   .logo {
-    justify-content: center !important;
+    order: 1 !important;
+    justify-content: flex-start !important;
+    margin: 0 !important;
+  }
+  .deliver-to {
+    display: none !important;
   }
   .header-actions,
   .bar-right {
-    justify-content: space-between !important;
+    order: 2 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+    width: auto !important;
+    margin: 0 !important;
+  }
+  .cart-btn {
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+  }
+  .search-group {
+    order: 3 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 38px !important;
+    border-radius: 10px !important;
+    margin: 0 !important;
+  }
+  .search-group input {
+    font-size: 13px !important;
+    padding: 0 12px !important;
+  }
+  .search-go {
+    width: 44px !important;
+  }
+
+  /* Header sub-nav (strip with smooth horizontal scroll) */
+  .header-nav {
+    height: 42px !important;
+    overflow: hidden !important;
+    background: rgba(6, 23, 17, 0.9) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+  .header-nav .bar {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    height: 100% !important;
+    padding: 0 12px !important;
+    overflow: hidden !important;
     width: 100% !important;
   }
   .header-nav nav,
   nav {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 16px !important;
+    height: 100% !important;
+    width: 100% !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
     white-space: nowrap !important;
-    gap: 16px !important;
-    padding-bottom: 4px !important;
-    scrollbar-width: none;
+    scrollbar-width: none !important;
+    padding: 0 4px !important;
   }
   .header-nav nav::-webkit-scrollbar,
   nav::-webkit-scrollbar {
-    display: none;
+    display: none !important;
+  }
+  .header-nav nav a,
+  nav a {
+    font-size: 13px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    padding-bottom: 2px !important;
+  }
+  /* Hide redundant "Back to Home" / "Back to Shop" button inside navbar on mobile */
+  .header-nav .bar > a {
+    display: none !important;
+  }
+  .nav-indicator {
+    display: none !important;
   }
   
   .page-banner {
@@ -487,6 +562,10 @@
   }
 
   /* Checkout page mobile */
+  .daraz-card {
+    padding: 18px 14px !important;
+    border-radius: 14px !important;
+  }
   .daraz-payment-methods {
     grid-template-columns: 1fr !important;
   }

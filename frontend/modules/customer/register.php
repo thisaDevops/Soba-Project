@@ -5,6 +5,25 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 $sessionUser = isset($_SESSION['u_id'])
     ? ['name' => $_SESSION['name'] ?? '', 'email' => $_SESSION['email'] ?? '', 'role' => $_SESSION['role'] ?? 'customer']
     : null;
+
+$redirectParam = isset($_GET['redirect']) ? trim($_GET['redirect']) : '';
+$autoCheckoutParam = isset($_GET['auto_checkout']) ? trim($_GET['auto_checkout']) : '';
+
+// Build login URL preserving redirect
+$loginUrl = "../../login.php";
+$loginParams = [];
+if (!empty($redirectParam)) {
+    $r = (strpos($redirectParam, 'modules/customer/') === false && $redirectParam === 'cart.php')
+        ? 'modules/customer/' . $redirectParam 
+        : $redirectParam;
+    $loginParams[] = 'redirect=' . urlencode($r);
+}
+if (!empty($autoCheckoutParam)) {
+    $loginParams[] = 'auto_checkout=1';
+}
+if (!empty($loginParams)) {
+    $loginUrl .= '?' . implode('&', $loginParams);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -325,7 +344,7 @@ $sessionUser = isset($_SESSION['u_id'])
     </form>
 
     <div class="auth-foot">
-      Already have an account? <a href="../../login.php" class="auth-link">Login</a>
+      Already have an account? <a href="<?= htmlspecialchars($loginUrl) ?>" class="auth-link">Login</a>
     </div>
     <div class="fine-print">This is a course prototype — no real account or password is stored anywhere.</div>
   </div>
@@ -383,8 +402,22 @@ $sessionUser = isset($_SESSION['u_id'])
   const HOME_URL = '../../home.php';
   const ADMIN_URL = '../admin/dashboard.php';
 
+  const urlParams = new URLSearchParams(window.location.search);
+  let REDIRECT_URL = urlParams.get('redirect') || <?= json_encode($redirectParam) ?> || '';
+  const AUTO_CHECKOUT = urlParams.get('auto_checkout') || <?= json_encode($autoCheckoutParam) ?> || '';
+
   function destinationFor(role){
-    return role === 'admin' ? ADMIN_URL : HOME_URL;
+    if (role === 'admin') return ADMIN_URL;
+    if (REDIRECT_URL) {
+      if (!REDIRECT_URL.startsWith('http://') && !REDIRECT_URL.startsWith('https://') && !REDIRECT_URL.startsWith('//')) {
+        let dest = REDIRECT_URL;
+        if (AUTO_CHECKOUT === '1' && !dest.includes('auto_checkout=')) {
+          dest += (dest.includes('?') ? '&' : '?') + 'auto_checkout=1';
+        }
+        return dest;
+      }
+    }
+    return HOME_URL;
   }
 
   function updateStrength(val){
@@ -400,7 +433,8 @@ $sessionUser = isset($_SESSION['u_id'])
 
   function completeRegister(name){
     showToast(`Account created${name ? ', ' + name : ''}! Please login…`);
-    setTimeout(() => { window.location.href = LOGIN_URL; }, 1300);
+    const loginTarget = <?= json_encode($loginUrl) ?>;
+    setTimeout(() => { window.location.href = loginTarget; }, 1300);
   }
 
   async function handleSubmit(e){
@@ -484,7 +518,7 @@ $sessionUser = isset($_SESSION['u_id'])
         } catch(e) {}
         showToast(`Welcome ${data.user.name} — redirecting…`);
         setTimeout(() => {
-          window.location.href = data.user.role === 'admin' ? '../admin/dashboard.php' : 'user_dashboard.php';
+          window.location.href = destinationFor(data.user.role);
         }, 700);
       } else {
         showToast(data.message || 'Google registration failed.');

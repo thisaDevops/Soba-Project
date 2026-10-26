@@ -298,6 +298,17 @@
   .chart-bar-fill:hover {
     background: var(--neo); box-shadow: 0 0 25px rgba(184, 255, 61, 0.6);
   }
+  .chart-bar-fill.zero-fill {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+  }
+  .chart-bar-fill.zero-fill:hover {
+    background: rgba(184, 255, 61, 0.3);
+    box-shadow: 0 0 15px rgba(184, 255, 61, 0.2);
+  }
+  .chart-bar-fill.today-fill {
+    border: 1px solid rgba(184, 255, 61, 0.7);
+  }
   .chart-bar-day { font-size: 11.5px; color: rgba(244,242,233,0.55); font-weight: 600; }
   .chart-bar-val { font-size: 10.5px; color: var(--neo); font-weight: 700; margin-bottom: 4px; }
 
@@ -609,44 +620,17 @@
       <!-- Sales Chart -->
       <div class="chart-card">
         <div class="chart-header">
-          <h3>Weekly Sales Revenue (LKR)</h3>
-          <span style="font-size:12px; color:var(--neo); font-weight:700;">Oct 05 - Oct 11, 2026</span>
+          <div>
+            <h3>Weekly Sales Revenue (LKR)</h3>
+            <p style="font-size:12px; color:rgba(244,242,233,0.5); margin-top:2px;">Gross revenue performance over the current 7-day cycle</p>
+          </div>
+          <span style="font-size:12px; color:var(--neo); font-weight:700;" id="chartPeriodBadge">Oct 20 – Oct 26, 2026</span>
         </div>
-        <div class="chart-svg-shell">
+        <div class="chart-svg-shell" id="weeklyChartContainer">
           <div class="chart-bar-col">
-            <span class="chart-bar-val mono">42k</span>
-            <div class="chart-bar-fill" style="height: 55%;"></div>
-            <span class="chart-bar-day">Mon</span>
-          </div>
-          <div class="chart-bar-col">
-            <span class="chart-bar-val mono">68k</span>
-            <div class="chart-bar-fill" style="height: 85%;"></div>
-            <span class="chart-bar-day">Tue</span>
-          </div>
-          <div class="chart-bar-col">
-            <span class="chart-bar-val mono">51k</span>
-            <div class="chart-bar-fill" style="height: 65%;"></div>
-            <span class="chart-bar-day">Wed</span>
-          </div>
-          <div class="chart-bar-col">
-            <span class="chart-bar-val mono">84k</span>
-            <div class="chart-bar-fill" style="height: 98%;"></div>
-            <span class="chart-bar-day">Thu</span>
-          </div>
-          <div class="chart-bar-col">
-            <span class="chart-bar-val mono">72k</span>
-            <div class="chart-bar-fill" style="height: 90%;"></div>
-            <span class="chart-bar-day">Fri</span>
-          </div>
-          <div class="chart-bar-col">
-            <span class="chart-bar-val mono">95k</span>
-            <div class="chart-bar-fill" style="height: 100%; background:var(--neo);"></div>
-            <span class="chart-bar-day" style="color:var(--neo);">Sat</span>
-          </div>
-          <div class="chart-bar-col">
-            <span class="chart-bar-val mono">70k</span>
-            <div class="chart-bar-fill" style="height: 88%;"></div>
-            <span class="chart-bar-day">Sun</span>
+            <span class="chart-bar-val mono">...</span>
+            <div class="chart-bar-fill" style="height: 10%;"></div>
+            <span class="chart-bar-day">Loading</span>
           </div>
         </div>
       </div>
@@ -658,11 +642,11 @@
           <p style="font-size:12.5px; color:rgba(244,242,233,0.6); margin-top:4px;">Percentage of orders shipped strictly with plastic-free biodegradable packaging materials.</p>
         </div>
         <div class="eco-meter-circle">
-          <span class="eco-meter-val mono">98.2%</span>
+          <span class="eco-meter-val mono" id="complianceVal">100%</span>
           <span class="eco-meter-lbl">Certified</span>
         </div>
-        <div style="font-size:12px; text-align:center; color:rgba(244,242,233,0.7);">
-          🌱 142 of 144 orders certified 100% plastic-free
+        <div style="font-size:12px; text-align:center; color:rgba(244,242,233,0.7);" id="complianceMeta">
+          🌱 3 of 3 orders certified 100% plastic-free
         </div>
       </div>
     </div>
@@ -732,6 +716,49 @@
         document.getElementById('tileDispatch').textContent = String(m.in_dispatch).padStart(2, '0');
         document.getElementById('tileDelivered').textContent = String(m.delivered).padStart(2, '0');
 
+        // Render Dynamic Weekly Chart
+        if (data.weekly_chart) {
+          const badge = document.getElementById('chartPeriodBadge');
+          if (badge && data.weekly_chart.period_label) {
+            badge.textContent = data.weekly_chart.period_label;
+          }
+
+          const chartContainer = document.getElementById('weeklyChartContainer');
+          if (chartContainer && Array.isArray(data.weekly_chart.days)) {
+            chartContainer.innerHTML = '';
+            data.weekly_chart.days.forEach(item => {
+              const col = document.createElement('div');
+              col.className = 'chart-bar-col';
+              const revFormatted = Number(item.revenue).toLocaleString();
+              col.title = `${item.display_day} (${item.short_date}): Rs. ${revFormatted} • ${item.order_count} order(s)`;
+
+              let fillClass = 'chart-bar-fill';
+              if (item.revenue === 0) fillClass += ' zero-fill';
+              if (item.is_today) fillClass += ' today-fill';
+
+              const valColor = item.revenue > 0 ? 'var(--neo)' : 'rgba(244,242,233,0.35)';
+              const dayStyle = item.is_today ? 'style="color:var(--neo); font-weight:700;"' : '';
+
+              col.innerHTML = `
+                <span class="chart-bar-val mono" style="color:${valColor};">${item.label}</span>
+                <div class="${fillClass}" style="height: ${item.height_pct}%;"></div>
+                <span class="chart-bar-day" ${dayStyle}>${item.display_day}</span>
+              `;
+              chartContainer.appendChild(col);
+            });
+          }
+        }
+
+        // Render Dynamic Eco Compliance Meter
+        if (data.compliance) {
+          const compVal = document.getElementById('complianceVal');
+          if (compVal) compVal.textContent = data.compliance.rate_pct + '%';
+          const compMeta = document.getElementById('complianceMeta');
+          if (compMeta && data.compliance.summary) {
+            compMeta.textContent = data.compliance.summary;
+          }
+        }
+
         if (Array.isArray(data.recent_orders) && data.recent_orders.length > 0) {
           const tbody = document.getElementById('recentOrdersBody');
           tbody.innerHTML = '';
@@ -764,6 +791,8 @@
   // Load logged-in admin details from localStorage or Session
   window.addEventListener('DOMContentLoaded', () => {
     loadDashboardStats();
+    // Auto refresh live stats every 10 seconds
+    setInterval(loadDashboardStats, 10000);
 
     try {
       const stored = localStorage.getItem('soba_user');

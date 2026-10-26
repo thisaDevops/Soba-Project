@@ -153,8 +153,15 @@
     padding: 0 28px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     height: 44px;
   }
+  .nav-back-btn {
+    display: inline-flex; align-items: center; gap: 6px; color: var(--neo); font-size: 12.5px; font-weight: 700;
+    text-decoration: none; padding: 5px 12px; border-radius: 8px; background: rgba(184,255,106,0.08);
+    border: 1px solid rgba(184,255,106,0.25); transition: all 0.2s; margin-left: auto; flex-shrink: 0;
+  }
+  .nav-back-btn:hover { background: rgba(184,255,106,0.18); transform: translateY(-1px); }
   .header-nav nav {
     position: relative;
     display: flex;
@@ -692,6 +699,61 @@
     transform: translateY(-2px);
   }
 
+  .btn-wishlist-daraz {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .btn-wishlist-daraz:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #ff6b81;
+    transform: translateY(-2px);
+  }
+  .btn-wishlist-daraz.active {
+    background: rgba(255, 71, 87, 0.2);
+    border-color: #ff4757;
+    color: #ff6b81;
+  }
+
+  .gallery-wishlist-float {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 10;
+    background: rgba(7, 28, 20, 0.75);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .gallery-wishlist-float:hover {
+    transform: scale(1.1);
+    border-color: #ff6b81;
+  }
+  .gallery-wishlist-float.active {
+    background: rgba(255, 71, 87, 0.28);
+    border-color: #ff4757;
+  }
+
   /* Daraz-Style Delivery & Service Guarantees Card */
   .daraz-service-card {
     background: rgba(255,255,255,0.03);
@@ -1117,20 +1179,40 @@
     .reviews-grid { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 768px) {
-    .gallery-pane { flex-direction: column-reverse; padding: 20px; }
+    header { padding: 0 !important; position: sticky !important; top: 0 !important; z-index: 100 !important; width: 100% !important; }
+    .header-top { padding: 10px 14px !important; }
+    .header-top .bar { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; align-items: center !important; justify-content: space-between !important; gap: 10px !important; padding: 0 !important; }
+    .logo { order: 1 !important; margin: 0 !important; }
+    .logo .mark { font-size: 22px !important; }
+    .logo .sub { font-size: 9.5px !important; }
+    .bar-right { order: 2 !important; display: flex !important; align-items: center !important; gap: 8px !important; margin: 0 !important; }
+    .cart-btn { padding: 7px 12px !important; font-size: 12px !important; gap: 6px !important; }
+    .cart-count { min-width: 18px !important; height: 18px !important; font-size: 10px !important; }
+    .search-group { order: 3 !important; width: 100% !important; max-width: 100% !important; height: 40px !important; border-radius: 12px !important; margin: 0 !important; }
+    .search-group input { font-size: 13px !important; padding: 0 12px !important; }
+    .search-go { width: 44px !important; font-size: 14px !important; }
+
+    .header-nav { height: 42px !important; background: rgba(6, 23, 17, 0.9) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important; }
+    .header-nav .bar { display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: flex-start !important; height: 100% !important; padding: 0 12px !important; overflow: hidden !important; }
+    .header-nav nav { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 16px !important; height: 100% !important; width: 100% !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; white-space: nowrap !important; scrollbar-width: none !important; padding: 0 4px !important; }
+    .header-nav nav::-webkit-scrollbar { display: none !important; }
+    .header-nav nav a { font-size: 13px !important; white-space: nowrap !important; flex-shrink: 0 !important; padding-bottom: 2px !important; }
+    .header-nav .bar > a { display: none !important; }
+    .nav-indicator { display: none !important; }
+
+    .gallery-pane { flex-direction: column-reverse; padding: 16px; }
     .gallery-thumbs { flex-direction: row; width: 100%; overflow-x: auto; padding-bottom: 4px; }
-    .gallery-main-stage { min-height: 340px; }
-    .details-info-pane { padding: 26px 20px; }
+    .gallery-main-stage { min-height: 280px; }
+    .details-info-pane { padding: 20px 16px; }
     .reviews-grid { grid-template-columns: 1fr; }
-    .tabs-nav { padding: 0 20px; }
-    .tabs-content-body { padding: 26px 20px; }
-    .footer-inner { grid-template-columns: 1fr 1fr; }
+    .tabs-nav { padding: 0 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+    .tabs-content-body { padding: 20px 16px; }
+    .footer-inner { grid-template-columns: 1fr; gap: 24px; }
   }
   @media (max-width: 580px) {
     .footer-inner { grid-template-columns: 1fr; }
-    .header-top .bar { padding: 12px 16px; }
-    .details-shell { padding: 0 14px; }
-    .breadcrumb-shell { padding: 0 14px; }
+    .details-shell { padding: 0 12px; }
+    .breadcrumb-shell { padding: 0 12px; }
     .qty-and-cart-row { flex-direction: column; align-items: stretch; }
     .btn-add-basket, .btn-buy-instant { width: 100%; }
   }
@@ -1188,7 +1270,7 @@
         <a class="nav-link" href="../../home.php#contact-section" data-nav="contact">Contact</a>
         <div class="nav-indicator" id="nav-indicator"></div>
       </nav>
-      <a href="products.php" style="display:inline-flex; align-items:center; gap:6px; color:var(--neo); font-size:12.5px; font-weight:700; text-decoration:none; padding:5px 12px; border-radius:8px; background:rgba(184,255,106,0.08); border:1px solid rgba(184,255,106,0.25);">
+      <a href="products.php" class="nav-back-btn">
         &larr; Back to Shop
       </a>
     </div>
@@ -1227,6 +1309,10 @@
         <div class="gallery-main-stage" id="galleryMainStage" onmousemove="handleImageZoom(event)" onmouseleave="resetImageZoom()" onclick="openLightbox()">
           <span class="cert-badge-stage" id="detailCert">100% Compostable</span>
           <span class="eco-saved-stage" id="detailSaved">🌱 Saves 1 Plastic Item</span>
+          
+          <button type="button" class="gallery-wishlist-float" id="btnFloatingWishlist" onclick="event.stopPropagation(); toggleDetailWishlist();" title="Save to Wishlist">
+            <span id="floatingHeart">🤍</span>
+          </button>
           
           <button class="gallery-nav-btn prev" onclick="event.stopPropagation(); changeImageIndex(-1)">‹</button>
           <button class="gallery-nav-btn next" onclick="event.stopPropagation(); changeImageIndex(1)">›</button>
@@ -1312,6 +1398,11 @@
 
               <button class="btn-buy-instant" onclick="buyNow()">
                 ⚡ Buy Now
+              </button>
+
+              <button type="button" class="btn-wishlist-daraz" id="btnDetailWishlist" onclick="toggleDetailWishlist()" title="Add to Wishlist">
+                <span id="wishlistHeart">🤍</span>
+                <span id="wishlistText">Wishlist</span>
               </button>
             </div>
           </div>
@@ -1959,6 +2050,97 @@
 
     // Related Products
     renderRelatedProducts(currentProduct.id);
+
+    // Sync Wishlist state
+    updateWishlistUI();
+  }
+
+  // ========================================================
+  // WISHLIST LOGIC
+  // ========================================================
+  function sobaToast(msg) {
+    const toast = document.getElementById('cartToast');
+    const toastText = document.getElementById('toastText');
+    if (toast && toastText) {
+      toastText.innerText = msg;
+      toast.classList.add('show');
+      clearTimeout(window._cartToastTimer);
+      window._cartToastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+  }
+
+  function getWishlist() {
+    try {
+      const stored = localStorage.getItem('soba_wishlist');
+      if (stored) return JSON.parse(stored);
+    } catch(e) {}
+    return [];
+  }
+
+  function saveWishlist(list) {
+    try {
+      localStorage.setItem('soba_wishlist', JSON.stringify(list));
+    } catch(e) {}
+  }
+
+  function isProductInWishlist(prodId) {
+    const list = getWishlist();
+    return list.some(item => Number(item.id) === Number(prodId));
+  }
+
+  function updateWishlistUI() {
+    if (!currentProduct) return;
+    const inList = isProductInWishlist(currentProduct.id);
+    const btn = document.getElementById('btnDetailWishlist');
+    const floatBtn = document.getElementById('btnFloatingWishlist');
+    const heart = document.getElementById('wishlistHeart');
+    const floatHeart = document.getElementById('floatingHeart');
+    const text = document.getElementById('wishlistText');
+
+    if (inList) {
+      if (btn) btn.classList.add('active');
+      if (floatBtn) floatBtn.classList.add('active');
+      if (heart) heart.textContent = '❤️';
+      if (floatHeart) floatHeart.textContent = '❤️';
+      if (text) text.textContent = 'Wishlisted';
+    } else {
+      if (btn) btn.classList.remove('active');
+      if (floatBtn) floatBtn.classList.remove('active');
+      if (heart) heart.textContent = '🤍';
+      if (floatHeart) floatHeart.textContent = '🤍';
+      if (text) text.textContent = 'Wishlist';
+    }
+  }
+
+  function toggleDetailWishlist() {
+    if (!currentProduct) return;
+    let list = getWishlist();
+    const idx = list.findIndex(item => Number(item.id) === Number(currentProduct.id));
+
+    if (idx >= 0) {
+      list.splice(idx, 1);
+      saveWishlist(list);
+      updateWishlistUI();
+      sobaToast(`"${currentProduct.name}" removed from Wishlist.`);
+    } else {
+      const primaryImg = (currentProduct.images && currentProduct.images.length > 0)
+        ? currentProduct.images[0]
+        : (currentProduct.image || '');
+
+      list.push({
+        id: currentProduct.id,
+        name: currentProduct.name,
+        price: currentProduct.price,
+        original_price: currentProduct.original_price || currentProduct.originalPrice || 0,
+        icon: currentProduct.icon || '🌱',
+        image: primaryImg,
+        cert: currentProduct.cert || 'Eco Friendly',
+        category: currentProduct.category || 'Zero-Waste'
+      });
+      saveWishlist(list);
+      updateWishlistUI();
+      sobaToast(`"${currentProduct.name}" saved to your Wishlist! 💚`);
+    }
   }
 
   // ========================================================

@@ -5,11 +5,25 @@ require_once __DIR__ . '/../backend/includes/session_handler.php';
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 $sessionUser = isset($_SESSION['u_id'])
-
     ? ['name' => $_SESSION['name'] ?? '', 'email' => $_SESSION['email'] ?? '', 'role' => $_SESSION['role'] ?? 'customer']
-
     : null;
 
+$redirectParam = isset($_GET['redirect']) ? trim($_GET['redirect']) : '';
+$autoCheckoutParam = isset($_GET['auto_checkout']) ? trim($_GET['auto_checkout']) : '';
+
+// Build register URL preserving redirect
+$regUrl = "modules/customer/register.php";
+$regParams = [];
+if (!empty($redirectParam)) {
+    $r = str_replace('modules/customer/', '', $redirectParam);
+    $regParams[] = 'redirect=' . urlencode($r);
+}
+if (!empty($autoCheckoutParam)) {
+    $regParams[] = 'auto_checkout=1';
+}
+if (!empty($regParams)) {
+    $regUrl .= '?' . implode('&', $regParams);
+}
 ?>
 
 <!DOCTYPE html>
@@ -583,9 +597,7 @@ $sessionUser = isset($_SESSION['u_id'])
 
 
     <div class="auth-foot">
-
-      Don't have an account? <a href="modules/customer/register.php" class="auth-link">Register</a>
-
+      Don't have an account? <a href="<?= htmlspecialchars($regUrl) ?>" class="auth-link">Register</a>
     </div>
 
     <div class="fine-print">This is a course prototype — no real account or password is stored anywhere.</div>
@@ -696,10 +708,22 @@ $sessionUser = isset($_SESSION['u_id'])
 
 
 
+  const urlParams = new URLSearchParams(window.location.search);
+  let REDIRECT_URL = urlParams.get('redirect') || <?= json_encode($redirectParam) ?> || '';
+  const AUTO_CHECKOUT = urlParams.get('auto_checkout') || <?= json_encode($autoCheckoutParam) ?> || '';
+
   function destinationFor(role){
-
-    return role === 'admin' ? ADMIN_URL : HOME_URL;
-
+    if (role === 'admin') return ADMIN_URL;
+    if (REDIRECT_URL) {
+      if (!REDIRECT_URL.startsWith('http://') && !REDIRECT_URL.startsWith('https://') && !REDIRECT_URL.startsWith('//')) {
+        let dest = REDIRECT_URL;
+        if (AUTO_CHECKOUT === '1' && !dest.includes('auto_checkout=')) {
+          dest += (dest.includes('?') ? '&' : '?') + 'auto_checkout=1';
+        }
+        return dest;
+      }
+    }
+    return HOME_URL;
   }
 
 
@@ -874,7 +898,7 @@ $sessionUser = isset($_SESSION['u_id'])
 
         setTimeout(() => {
 
-          window.location.href = data.user.role === 'admin' ? ADMIN_URL : HOME_URL;
+          window.location.href = destinationFor(data.user.role);
 
         }, 700);
 

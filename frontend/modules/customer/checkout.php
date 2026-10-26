@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/../../../backend/includes/session_handler.php';
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
+
 // PayHere Credentials - DO NOT MODIFY (Sandbox Credentials & Settings)
 $merchant_id = "1238336"; 
 $merchant_secret = "Mzc2MTU0NDgzNzY2ODA2NzEzNDE2MTkxNDExMzUxMDg0OTQwOTg0"; // Decoded secret key
@@ -1079,6 +1082,17 @@ $hash = generatePayHereHash($merchant_id, $order_id, $amount, $currency, $mercha
   ];
 
   function loadOrderSummary() {
+    // Ensure user is authenticated to access checkout
+    try {
+      const savedUser = localStorage.getItem('soba_user');
+      <?php if (empty($_SESSION['u_id'])): ?>
+      if (!savedUser) {
+        window.location.replace('cart.php');
+        return;
+      }
+      <?php endif; ?>
+    } catch(e) {}
+
     let checkoutState = null;
     let selectedCartItems = [];
 
@@ -1182,17 +1196,53 @@ $hash = generatePayHereHash($merchant_id, $order_id, $amount, $currency, $mercha
 
     document.getElementById('totalVal').innerText = `LKR ${grandTotal.toLocaleString()}.00`;
 
-    // Auto-fill logged-in customer info if available
+    // Auto-fill logged-in customer info from Dashboard & Database
     try {
       const savedUser = localStorage.getItem('soba_user');
       if (savedUser) {
         const u = JSON.parse(savedUser);
-        if (u.name && !document.getElementById('fullName').value) {
-          document.getElementById('fullName').value = u.name;
-        }
-        if (u.email && !document.getElementById('checkoutEmail')?.value) {
-          // email can be stored for payhere
-          window.customerEmail = u.email;
+
+        const fillCustomerInputs = (obj) => {
+          if (!obj) return;
+          const fn = document.getElementById('fullName');
+          if (fn && obj.name && !fn.value) fn.value = obj.name;
+
+          const ph = document.getElementById('phoneNumber');
+          if (ph && obj.phone && !ph.value) ph.value = obj.phone;
+
+          const addr = document.getElementById('address');
+          if (addr && obj.address && !addr.value) addr.value = obj.address;
+
+          const ct = document.getElementById('city');
+          if (ct && obj.city && !ct.value) ct.value = obj.city;
+
+          const pc = document.getElementById('postalCode');
+          if (pc && (obj.postal || obj.postalCode) && !pc.value) {
+            pc.value = obj.postal || obj.postalCode;
+          }
+
+          if (obj.email) {
+            window.customerEmail = obj.email;
+          }
+        };
+
+        // 1. Fill immediately from localStorage
+        fillCustomerInputs(u);
+
+        // 2. Also fetch latest DB profile if phone/address missing in localStorage
+        if (u.email && (!u.phone || !u.address || !u.city)) {
+          fetch(`/php/web/Soba-Project/backend/api/customer/user_profile.php?email=${encodeURIComponent(u.email)}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data && data.success && data.user) {
+                fillCustomerInputs(data.user);
+                // Cache back into localStorage
+                try {
+                  localStorage.setItem('soba_user', JSON.stringify({ ...u, ...data.user }));
+                } catch(e) {}
+              }
+            })
+            .catch(() => {});
         }
       }
     } catch(e) {}

@@ -873,6 +873,26 @@ $sessionUser = !empty($_SESSION['u_id']) ? [
     .order-summary-sidebar { position: static; }
   }
   @media (max-width: 768px) {
+    header { padding: 0 !important; position: sticky !important; top: 0 !important; z-index: 100 !important; width: 100% !important; }
+    .header-top { padding: 10px 14px !important; }
+    .header-top .bar { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; align-items: center !important; justify-content: space-between !important; gap: 10px !important; padding: 0 !important; }
+    .logo { order: 1 !important; margin: 0 !important; }
+    .logo .mark { font-size: 22px !important; }
+    .logo .sub { font-size: 9.5px !important; }
+    .bar-right { order: 2 !important; display: flex !important; align-items: center !important; gap: 8px !important; margin: 0 !important; }
+    .nav-account-link, .cart-badge-link { padding: 7px 12px !important; font-size: 12px !important; }
+    .search-group { order: 3 !important; width: 100% !important; max-width: 100% !important; height: 40px !important; border-radius: 12px !important; margin: 0 !important; }
+    .search-group input { font-size: 13px !important; padding: 0 12px !important; }
+    .search-go { width: 44px !important; font-size: 14px !important; }
+
+    .header-nav { height: 42px !important; background: rgba(6, 23, 17, 0.9) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important; }
+    .header-nav .bar { display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: flex-start !important; height: 100% !important; padding: 0 12px !important; overflow: hidden !important; }
+    .header-nav nav { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 16px !important; height: 100% !important; width: 100% !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; white-space: nowrap !important; scrollbar-width: none !important; padding: 0 4px !important; }
+    .header-nav nav::-webkit-scrollbar { display: none !important; }
+    .header-nav nav a { font-size: 13px !important; white-space: nowrap !important; flex-shrink: 0 !important; padding-bottom: 2px !important; }
+    .nav-back-home { display: none !important; }
+    .nav-indicator { display: none !important; }
+
     .cart-item-card {
       grid-template-columns: 24px 75px 1fr;
       grid-template-rows: auto auto;
@@ -1402,6 +1422,12 @@ $sessionUser = !empty($_SESSION['u_id']) ? [
             const origPrice = item.originalPrice || Math.round(item.price * 1.35);
             const categoryName = (item.category || (master && master.category) || 'Zero-Waste').toUpperCase();
 
+            let isSaved = false;
+            try {
+              const curW = JSON.parse(localStorage.getItem('soba_wishlist') || '[]');
+              isSaved = curW.some(w => Number(w.id) === Number(item.id));
+            } catch(e) {}
+
             return `
               <div class="cart-item-card">
                 <input type="checkbox" class="item-checkbox" ${item.selected ? 'checked' : ''} onchange="toggleItem(${item.id}, this.checked)">
@@ -1432,7 +1458,7 @@ $sessionUser = !empty($_SESSION['u_id']) ? [
                   </div>
 
                   <div class="item-tool-btns">
-                    <button class="btn-tool-icon wish" onclick="saveForLater(${item.id})" title="Save for later">♥</button>
+                    <button class="btn-tool-icon wish" style="${isSaved ? 'color:#ff4757; background:rgba(255,71,87,0.22); border-color:#ff4757;' : ''}" onclick="saveForLater(${item.id})" title="${isSaved ? 'Saved in Wishlist' : 'Save for later'}">♥</button>
                     <button class="btn-tool-icon" onclick="removeItem(${item.id})" title="Delete">🗑️</button>
                   </div>
                 </div>
@@ -1553,7 +1579,40 @@ $sessionUser = !empty($_SESSION['u_id']) ? [
   }
 
   function saveForLater(id) {
-    sobaToast("Item saved to your Wishlist ♥");
+    const item = cart.find(i => Number(i.id) === Number(id));
+    if (!item) return;
+
+    let wishlist = [];
+    try {
+      const raw = localStorage.getItem('soba_wishlist');
+      if (raw) wishlist = JSON.parse(raw);
+    } catch(e) {}
+
+    const idx = wishlist.findIndex(w => Number(w.id) === Number(item.id));
+    if (idx >= 0) {
+      sobaToast(`"${item.name}" is already in your Wishlist! ♥`);
+    } else {
+      const master = (typeof products !== 'undefined') ? products.find(p => Number(p.id) === Number(item.id)) : null;
+      const primaryImg = item.image || (master && master.images && master.images[0]) || (master && master.image) || '';
+
+      wishlist.push({
+        id: item.id,
+        name: item.name,
+        price: Number(item.price) || 0,
+        original_price: Number(item.originalPrice || item.original_price || item.price * 1.3),
+        icon: item.icon || (master && master.icon) || '🌱',
+        image: primaryImg,
+        category: item.category || (master && master.category) || 'Zero-Waste',
+        cert: item.cert || (master && master.cert) || 'Eco Friendly'
+      });
+
+      try {
+        localStorage.setItem('soba_wishlist', JSON.stringify(wishlist));
+      } catch(e) {}
+
+      sobaToast(`"${item.name}" saved to your Wishlist! ♥`);
+      renderCart();
+    }
   }
 
   function applyVoucher(forcedCode) {

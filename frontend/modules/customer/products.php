@@ -154,8 +154,15 @@
     padding: 0 28px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     height: 44px;
   }
+  .nav-back-btn {
+    display: inline-flex; align-items: center; gap: 6px; color: var(--neo); font-size: 12.5px; font-weight: 700;
+    text-decoration: none; padding: 5px 12px; border-radius: 8px; background: rgba(184,255,106,0.08);
+    border: 1px solid rgba(184,255,106,0.25); transition: all 0.2s; margin-left: auto; flex-shrink: 0;
+  }
+  .nav-back-btn:hover { background: rgba(184,255,106,0.18); transform: translateY(-1px); }
   .header-nav nav {
     position: relative;
     display: flex;
@@ -327,6 +334,292 @@
   .footer-col a { color: rgba(255,255,255,0.65); text-decoration: none; font-size: 13.5px; transition: color 0.2s; }
   .footer-col a:hover { color: var(--neo); }
   .footer-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--neo); font-weight: 700; margin-bottom: 6px; }
+
+  /* ===== Responsive Mobile Styles ===== */
+  @media (max-width: 768px) {
+    header {
+      padding: 0 !important;
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 100 !important;
+    }
+    .header-top {
+      padding: 10px 14px !important;
+    }
+    .header-top .bar {
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: wrap !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 10px !important;
+      padding: 0 !important;
+    }
+    .logo {
+      order: 1 !important;
+      margin: 0 !important;
+    }
+    .logo .mark {
+      font-size: 22px !important;
+    }
+    .logo .sub {
+      font-size: 9.5px !important;
+    }
+    .bar-right {
+      order: 2 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      margin: 0 !important;
+    }
+    .cart-btn {
+      padding: 7px 12px !important;
+      font-size: 12px !important;
+      gap: 6px !important;
+    }
+    .cart-count {
+      min-width: 18px !important;
+      height: 18px !important;
+      font-size: 10px !important;
+    }
+    .search-group {
+      order: 3 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 40px !important;
+      border-radius: 12px !important;
+      margin: 0 !important;
+    }
+    .search-group input {
+      font-size: 13px !important;
+      padding: 0 12px !important;
+    }
+    .search-go {
+      width: 44px !important;
+      font-size: 14px !important;
+    }
+
+    .header-nav {
+      height: 42px !important;
+      background: rgba(6, 23, 17, 0.9) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    .header-nav .bar {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      height: 100% !important;
+      padding: 0 12px !important;
+      overflow: hidden !important;
+    }
+    .header-nav nav {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      gap: 16px !important;
+      height: 100% !important;
+      width: 100% !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      white-space: nowrap !important;
+      scrollbar-width: none !important;
+      padding: 0 4px !important;
+    }
+    .header-nav nav::-webkit-scrollbar {
+      display: none !important;
+    }
+    .header-nav nav a {
+      font-size: 13px !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+      padding-bottom: 2px !important;
+    }
+    .header-nav .bar > a,
+    .nav-back-btn {
+      display: none !important; /* Hide redundant Back to Home button on mobile to save space */
+    }
+    .nav-indicator {
+      display: none !important;
+    }
+
+    .page-banner {
+      padding: 0 12px !important;
+      margin: 14px auto 8px !important;
+    }
+    .page-banner-card {
+      padding: 22px 18px !important;
+      border-radius: 18px !important;
+    }
+    .page-banner-card .eyebrow {
+      font-size: 10px !important;
+      padding: 4px 10px !important;
+      margin-bottom: 10px !important;
+    }
+    .page-banner-card h1 {
+      font-size: 24px !important;
+      line-height: 1.2 !important;
+    }
+    .page-banner-card p {
+      font-size: 13px !important;
+      margin-top: 8px !important;
+      line-height: 1.5 !important;
+    }
+    .page-banner-card::after {
+      display: none !important;
+    }
+
+    .shop-shell {
+      padding: 10px 12px 60px !important;
+    }
+    .filter-row {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 12px !important;
+      padding: 12px 0 !important;
+      margin-bottom: 20px !important;
+    }
+    .filter-group:first-child {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      scrollbar-width: none !important;
+      white-space: nowrap !important;
+      width: 100% !important;
+      padding-bottom: 4px !important;
+    }
+    .filter-group:first-child::-webkit-scrollbar {
+      display: none !important;
+    }
+    .filter-group-label {
+      font-size: 10.5px !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+    }
+    .chip {
+      flex-shrink: 0 !important;
+      padding: 7px 14px !important;
+      font-size: 12px !important;
+      white-space: nowrap !important;
+    }
+    .filter-group:last-child {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+    }
+    .select-filter {
+      padding: 8px 12px !important;
+      font-size: 12.5px !important;
+      border-radius: 10px !important;
+      flex: 1 !important;
+      max-width: 180px !important;
+    }
+    .section-head {
+      margin-bottom: 16px !important;
+    }
+    .section-head h2 {
+      font-size: 22px !important;
+    }
+    .section-head .count {
+      font-size: 11.5px !important;
+    }
+
+    .grid {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 12px !important;
+    }
+    .card {
+      border-radius: 16px !important;
+    }
+    .card-art {
+      height: 140px !important;
+    }
+    .card-art .emoji-icon {
+      font-size: 44px !important;
+    }
+    .card-cert {
+      top: 8px !important;
+      left: 8px !important;
+      font-size: 8px !important;
+      padding: 3px 6px !important;
+      border-radius: 6px !important;
+      max-width: calc(100% - 44px) !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+      letter-spacing: 0.02em !important;
+    }
+    .card-wish {
+      top: 8px !important;
+      right: 8px !important;
+      width: 28px !important;
+      height: 28px !important;
+      font-size: 12px !important;
+    }
+    .poster-price-tag {
+      bottom: 8px !important;
+      right: 8px !important;
+      padding: 3px 8px !important;
+      font-size: 11px !important;
+      border-radius: 6px !important;
+    }
+    .card-body {
+      padding: 10px !important;
+      gap: 6px !important;
+    }
+    .card-meta {
+      font-size: 9.5px !important;
+    }
+    .card-body h3 {
+      font-size: 13px !important;
+      line-height: 1.25 !important;
+      display: -webkit-box !important;
+      -webkit-line-clamp: 2 !important;
+      -webkit-box-orient: vertical !important;
+      overflow: hidden !important;
+      min-height: 32px !important;
+      margin: 0 !important;
+    }
+    .card-saved {
+      font-size: 10px !important;
+      padding: 2px 6px !important;
+      border-radius: 4px !important;
+    }
+    .card-foot {
+      padding-top: 6px !important;
+      margin-top: auto !important;
+    }
+    .add-btn {
+      padding: 8px 8px !important;
+      font-size: 11px !important;
+      border-radius: 8px !important;
+      letter-spacing: 0.02em !important;
+    }
+
+    footer {
+      padding: 40px 16px 20px !important;
+      margin-top: 50px !important;
+    }
+    .footer-inner {
+      grid-template-columns: 1fr !important;
+      gap: 24px !important;
+      padding-bottom: 24px !important;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .grid {
+      grid-template-columns: 1fr !important;
+    }
+    .card-art {
+      height: 180px !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -371,7 +664,7 @@
   </div>
 
   <div class="header-nav">
-    <div class="bar" style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="bar">
       <nav id="navbar">
         <a class="nav-link" href="../../home.php" data-nav="home">Home</a>
         <a class="nav-link active" href="products.php" data-nav="shop">Shop Products</a>
@@ -381,7 +674,7 @@
         <a class="nav-link" href="../../home.php#contact-section" data-nav="contact">Contact</a>
         <div class="nav-indicator" id="nav-indicator"></div>
       </nav>
-      <a href="../../home.php" style="display:inline-flex; align-items:center; gap:6px; color:var(--neo); font-size:12.5px; font-weight:700; text-decoration:none; padding:5px 12px; border-radius:8px; background:rgba(184,255,106,0.08); border:1px solid rgba(184,255,106,0.25);">
+      <a href="../../home.php" class="nav-back-btn">
         &larr; Back to Home
       </a>
     </div>
@@ -505,10 +798,16 @@
         ? `<img src="${primaryImg}" alt="${p.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"><span class="emoji-icon" style="display:none;">${p.icon || '🌿'}</span>`
         : `<span class="emoji-icon">${p.icon || '🌿'}</span>`;
 
+      let isWish = false;
+      try {
+        const curW = JSON.parse(localStorage.getItem('soba_wishlist') || '[]');
+        isWish = curW.some(w => Number(w.id) === Number(p.id));
+      } catch(e) {}
+
       card.innerHTML = `
         <div class="card-art">
           <span class="card-cert">${p.cert}</span>
-          <button class="card-wish" onclick="toggleWish(event, this)">♥</button>
+          <button class="card-wish ${isWish ? 'active' : ''}" onclick="toggleWish(event, ${p.id}, this)">♥</button>
           ${artMedia}
           <span class="poster-price-tag">LKR ${p.price.toLocaleString()}</span>
         </div>
@@ -592,9 +891,39 @@
     }
   }
 
-  function toggleWish(event, btn) {
+  function toggleWish(event, prodId, btn) {
     if (event) event.stopPropagation(); // Stop card click navigation
-    btn.classList.toggle('active');
+    const p = products.find(item => Number(item.id) === Number(prodId));
+    if (!p) return;
+
+    let wishlist = [];
+    try {
+      const raw = localStorage.getItem('soba_wishlist');
+      if (raw) wishlist = JSON.parse(raw);
+    } catch(e) {}
+
+    const idx = wishlist.findIndex(item => Number(item.id) === Number(prodId));
+    if (idx >= 0) {
+      wishlist.splice(idx, 1);
+      btn.classList.remove('active');
+    } else {
+      const primaryImg = (p.images && p.images.length > 0) ? p.images[0] : (p.image || '');
+      wishlist.push({
+        id: p.id,
+        name: p.name,
+        price: Number(p.price) || 0,
+        original_price: Number(p.originalPrice || p.original_price || p.price * 1.3),
+        icon: p.icon || '🌱',
+        image: primaryImg,
+        category: p.category || 'Zero-Waste',
+        cert: p.cert || 'Eco Friendly'
+      });
+      btn.classList.add('active');
+    }
+
+    try {
+      localStorage.setItem('soba_wishlist', JSON.stringify(wishlist));
+    } catch(e) {}
   }
 
   // Mouse Spotlight Motion disabled
