@@ -1,3 +1,56 @@
+<?php
+require_once __DIR__ . '/../backend/includes/session_handler.php';
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
+// Preserve the authenticated session so the account name is shown after sign-in.
+$sessionUser = null;
+if (!empty($_SESSION['u_id'])) {
+    $sessionUser = [
+        'id' => $_SESSION['u_id'],
+        'name' => $_SESSION['name'] ?? $_SESSION['username'] ?? 'Account',
+        'email' => $_SESSION['email'] ?? '',
+        'role' => $_SESSION['role'] ?? 'customer'
+    ];
+}
+
+// Fetch live products directly from database with images
+$dbProducts = [];
+try {
+    require_once __DIR__ . '/../backend/config/db_connection.php';
+    if (isset($conn) && $conn instanceof mysqli) {
+        $pSql = "SELECT p.p_id as id, p.name, p.sku, p.material, p.price, p.original_price as originalPrice, 
+                        p.stock_qty, p.plastic_saved_g as saved, p.cert_badge as cert, p.icon, 
+                        p.description as `desc`, c.name as cat, c.slug as category 
+                 FROM products p 
+                 LEFT JOIN categories c ON p.cat_id = c.cat_id 
+                 WHERE p.is_active = 1 
+                 ORDER BY p.p_id ASC";
+        $pRes = $conn->query($pSql);
+        if ($pRes) {
+            while ($row = $pRes->fetch_assoc()) {
+                $row['id'] = (int)$row['id'];
+                $row['price'] = (float)$row['price'];
+                $row['saved'] = (int)$row['saved'];
+                $row['stock_qty'] = (int)$row['stock_qty'];
+                
+                // Fetch associated images from product_images table
+                $imgStmt = $conn->prepare("SELECT url FROM product_images WHERE p_id = ? ORDER BY sort_order ASC");
+                $imgStmt->bind_param("i", $row['id']);
+                $imgStmt->execute();
+                $imgRes = $imgStmt->get_result();
+                $imgs = [];
+                while ($im = $imgRes->fetch_assoc()) {
+                    if (!empty($im['url'])) { $imgs[] = $im['url']; }
+                }
+                $row['images'] = $imgs;
+                $dbProducts[] = $row;
+            }
+        }
+    }
+} catch (Throwable $t) {
+    // Graceful fallback to static list if database is unreachable
+    $dbProducts = [];
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +59,7 @@
 <title>Soba — Zero-Waste Marketplace</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
 <style>
   :root{
     --forest: #3B7A34;      /* Primary — bright, lighter green, logo, header, primary buttons */
@@ -37,11 +91,8 @@
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
-  /* ===== Cursor-reactive ambient spotlight ===== */
-  #spotlight{
-    position:fixed; inset:0; z-index:0; pointer-events:none;
-    background:radial-gradient(500px circle at var(--mx,50%) var(--my,20%), rgba(143,209,79,0.08), transparent 65%);
-  }
+  /* ===== Ambient spotlight disabled ===== */
+  #spotlight{ display:none !important; }
   h1,h2,h3,.display{
     font-family:'Fraunces', serif;
     font-weight:500;
@@ -213,8 +264,10 @@
   .card:hover{transform:translateY(-3px); box-shadow:0 12px 28px rgba(34,62,48,0.12);}
   .card-art{
     height:150px; display:flex; align-items:center; justify-content:center;
-    font-size:52px; background:var(--sand-deep); position:relative;
+    font-size:52px; background:var(--sand-deep); position:relative; overflow:hidden;
   }
+  .card-art img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+  .card:hover .card-art img { transform: scale(1.06); }
   .card-cert{
     position:absolute; top:10px; left:10px;
     background:var(--forest); color:var(--sand); font-size:10px; font-weight:600;
@@ -682,8 +735,44 @@
     background:rgba(44,93,39,0.94); color:var(--paper);
     border-top:1px solid rgba(200,255,91,0.18);
   }
-  .header-nav nav a::after{background:var(--lime);}
-  .header-nav .nav-link.active{color:var(--lime);}
+
+  /* Keep the EXACT navbar styling and add responsive sliding indicator */
+  .header-nav nav{
+    position:relative;
+    display:flex;
+    gap:28px;
+    align-items:center;
+  }
+  .header-nav nav a{
+    color:rgba(249,248,243,0.9);
+    position:relative;
+    padding-bottom:4px;
+  }
+  .header-nav nav a:hover, .header-nav nav a.active{
+    color:var(--sand);
+    opacity:1;
+  }
+
+  /* The responsive sliding underline line (exact same lime color and glow) */
+  .nav-indicator{
+    position:absolute;
+    bottom:0px;
+    left:0;
+    height:2px;
+    background:var(--neo, #b8ff6a);
+    box-shadow:0 0 14px rgba(184,255,106,.5);
+    border-radius:2px;
+    pointer-events:none;
+    transition:transform 0.28s cubic-bezier(.4,0,.2,1), width 0.28s cubic-bezier(.4,0,.2,1), opacity 0.2s ease;
+    z-index:10;
+    width:0;
+    transform:translateX(0);
+    opacity:0;
+  }
+  .header-nav nav a::after{
+    display:none !important; /* Hide old static duplicate */
+  }
+
   .nav-all-btn:hover{color:var(--lime);}
   .header-nav .bar{
     max-width:1400px; margin:0 auto; padding:9px 28px;
@@ -694,9 +783,6 @@
     color:var(--sand); font-size:13px; font-weight:600; cursor:pointer;
     font-family:'Work Sans', sans-serif;
   }
-  .header-nav .nav-link{color:rgba(249,248,243,0.9);}
-  .header-nav .nav-link:hover, .header-nav .nav-link.active{color:var(--sand); opacity:1;}
-  .header-nav nav a::after{background:var(--clay-soft);}
   .icon-btn{
     position:relative; background:transparent; border:1px solid var(--line); border-radius:999px;
     width:38px; height:38px; display:flex; align-items:center; justify-content:center;
@@ -1279,9 +1365,6 @@ header{background:transparent!important;border-bottom:0!important;}
 .search-go{background:var(--neo)!important;color:#102117!important;width:56px!important;}
 .header-top .cart-btn{border-color:rgba(184,255,106,.35)!important;background:rgba(255,255,255,.05)!important;box-shadow:0 0 0 1px rgba(184,255,106,.06) inset;}
 .header-top .cart-btn:hover{background:rgba(184,255,106,.12)!important;}
-.header-nav nav a{color:rgba(255,255,255,.66)!important;}
-.header-nav nav a:hover,.header-nav nav a.active{color:#fff!important;}
-.header-nav nav a::after{background:var(--neo)!important;box-shadow:0 0 14px rgba(184,255,106,.5);}
 
 .hero{max-width:none!important;margin:0!important;padding:86px max(28px,calc((100vw - 1420px)/2)) 88px!important;min-height:720px;position:relative;isolation:isolate;border-radius:0!important;display:grid!important;grid-template-columns:minmax(0,1.04fr) minmax(420px,.96fr)!important;gap:36px!important;overflow:hidden;}
 .hero:before{inset:0!important;background:
@@ -1407,7 +1490,6 @@ footer{background:#06150f!important;border-color:rgba(255,255,255,.08)!important
 
 /* ===== EXTRA SCROLL CINEMA — ABOUT / REVIEWS ===== */
 html{scroll-behavior:smooth;}
-#scroll-progress{position:fixed;top:0;left:0;width:100%;height:3px;z-index:9999;pointer-events:none;background:linear-gradient(90deg,var(--neo),#7dd3fc,var(--clay));transform:scaleX(0);transform-origin:left;box-shadow:0 0 16px rgba(184,255,61,.45);}
 .story-section,.cta-band{will-change:transform,opacity;}
 .story-section.reveal{opacity:0;transform:translateY(55px) scale(.985);filter:blur(5px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform 1s cubic-bezier(.2,.7,.2,1),filter .9s ease;}
 .story-section.reveal.in-view{opacity:1;transform:none;filter:none;}
@@ -1429,9 +1511,6 @@ html{scroll-behavior:smooth;}
 .band-forest.in-view .impact-stat:nth-child(1){transition-delay:.05s}.band-forest.in-view .impact-stat:nth-child(2){transition-delay:.14s}.band-forest.in-view .impact-stat:nth-child(3){transition-delay:.23s}.band-forest.in-view .impact-stat:nth-child(4){transition-delay:.32s}
 .reviews-section .story-eyebrow{animation:reviewPulse 2.8s ease-in-out infinite;}
 @keyframes reviewPulse{0%,100%{letter-spacing:.16em;opacity:.72}50%{letter-spacing:.22em;opacity:1}}
-/* active section marker for About / Reviews */
-.header-nav .nav-link.section-active{color:var(--neo)!important;transform:translateY(-2px);}
-@media (prefers-reduced-motion:reduce){#scroll-progress{transition:none}.story-section.reveal,.story-head,.zigzag-row,.reviews-section .quote-card,.impact-strip .impact-stat{opacity:1;transform:none;filter:none;transition:none}.quote-card::before,.reviews-section .story-eyebrow{animation:none!important;}}
 
 /* ===== CINEMATIC HOME REDESIGN — NUDOT / DIGITAL-STUDIO INSPIRED ===== */
 :root{
@@ -1521,10 +1600,50 @@ body{background:#0A0D0A;}
 .cin-final{background:#080A08;color:#fff;padding:130px 7vw 80px;position:relative;overflow:hidden}.cin-final h2{font-family:'Fraunces',serif;font-size:clamp(70px,11vw,170px);line-height:.78;letter-spacing:-.07em;font-weight:500;margin:0}.cin-final h2 span{display:block;text-align:right;color:var(--neo);padding-right:7vw}.cin-final .frow{display:flex;justify-content:space-between;align-items:center;margin-top:65px;border-top:1px solid rgba(255,255,255,.1);padding-top:18px}.cin-final .frow p{font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.16em;margin:0}.cin-final .fbtn{background:var(--neo);color:#081008;border:0;border-radius:999px;padding:14px 22px;font-weight:800;cursor:pointer}
 @keyframes cinUp{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:none}}
 @keyframes planetFloat{0%,100%{transform:translate3d(0,0,0) rotate(-2deg)}50%{transform:translate3d(0,-15px,0) rotate(3deg)}}
-@media(max-width:900px){.cin-nav{grid-template-columns:1fr auto;padding:18px 20px}.cin-center{display:none}.cin-hero{grid-template-columns:1fr;min-height:900px;padding:115px 22px 70px}.cin-stage{height:370px;margin-top:25px}.eco-planet{width:320px;height:320px}.float-card{transform:scale(.85)}.fc1{right:0}.fc3{right:0}.cin-manifesto-grid{grid-template-columns:1fr}.cin-linkrow{justify-content:flex-start}.premium-products{grid-template-columns:1fr}.cat-row{grid-template-columns:40px 1fr}.cat-row .desc{display:none}}
-@media(max-width:420px){.cin-hero{padding:105px 16px 60px}.cin-stage{height:280px}.eco-planet{width:230px;height:230px}.cin-meta{gap:16px;flex-wrap:wrap}.cin-actions{flex-direction:column;align-items:stretch}.float-card{transform:scale(.72)}.fc1{top:6%}.fc2{bottom:8%}}
+@media(max-width:900px){
+  .cin-nav{grid-template-columns:1fr auto;padding:16px 20px;}
+  .cin-center{display:none;}
+  .cin-hero{grid-template-columns:1fr;min-height:auto;padding:100px 20px 60px;text-align:center;}
+  .cin-kicker{justify-content:center;}
+  .cin-title{font-size:clamp(46px,9vw,80px);margin:16px auto 20px;}
+  .cin-title .ghost{padding-left:0;display:inline;}
+  .cin-lede{margin:0 auto;}
+  .cin-actions{justify-content:center;}
+  .cin-meta{justify-content:center;}
+  .cin-stage{height:360px;margin-top:30px;overflow:hidden;}
+  .eco-planet{width:min(70vw, 300px);height:min(70vw, 300px);}
+  .float-card{transform:scale(.85);}
+  .fc1{right:5%;top:5%;}
+  .fc2{left:5%;bottom:5%;}
+  .fc3{display:none;}
+  .cin-manifesto-grid{grid-template-columns:1fr;gap:30px;}
+  .cin-linkrow{justify-content:flex-start;}
+  .premium-products{grid-template-columns:repeat(2,1fr);gap:12px;}
+  .cat-row{grid-template-columns:40px 1fr;}
+  .cat-row .desc{display:none;}
+}
+@media(max-width:600px){
+  .premium-products{grid-template-columns:1fr;}
+}
+@media(max-width:480px){
+  .cin-nav{padding:12px 14px;}
+  .cin-hero{padding:85px 14px 45px;}
+  .cin-title{font-size:38px;letter-spacing:-0.04em;}
+  .cin-stage{height:250px;margin-top:15px;}
+  .eco-planet{width:190px;height:190px;}
+  .planet-core{font-size:54px;}
+  .float-card{padding:8px 10px;min-width:115px;transform:scale(0.8);}
+  .float-card b{font-size:13px;}
+  .float-card span{font-size:8px;}
+  .cin-meta{gap:14px;flex-wrap:wrap;}
+  .cin-actions{flex-direction:column;align-items:stretch;}
+  .cin-big{font-size:38px;}
+  .cin-selected, .cin-manifesto, .cin-cats, .cin-final{padding:60px 16px;}
+  .cin-final h2{font-size:46px;line-height:0.9;}
+  .cin-final h2 span{padding-right:0;text-align:left;}
+  .cin-final .frow{flex-direction:column;gap:14px;text-align:center;}
+}
 @media(prefers-reduced-motion:reduce){.cin-* *,.eco-planet,.float-card,.cin-track{animation:none!important}}
-
 
 /* ===== SOBA V4 — DEEP SCROLL CINEMA FOR ABOUT / IMPACT / REVIEWS ===== */
 .about-section, #about-section,
@@ -1992,11 +2111,208 @@ body{background:#0A0D0A;}
   .impact-stat .num,.story-particle,#reviews-section .quote-card::before{animation:none!important}
 }
 
+
+/* Selected objects: compact spacing after removing the plastic-saved label */
+.cin-selected .premium-products .card-body { gap: 10px; }
+.cin-selected .premium-products .card-foot { padding-top: 12px; }
+
+/* ===== Selected objects: readable text on light premium product cards ===== */
+.cin-selected .premium-products .card {
+  background: #FFFFFF !important;
+  border: 1px solid #DEDCD2 !important;
+  color: #242C24 !important;
+  box-shadow: 0 12px 30px rgba(23, 40, 27, 0.08) !important;
+  cursor: pointer;
+}
+.cin-selected .premium-products .card:hover {
+  border-color: #7A9A77 !important;
+  box-shadow: 0 20px 42px rgba(23, 40, 27, 0.16) !important;
+}
+.cin-selected .premium-products .card-body {
+  background: #FFFFFF !important;
+}
+.cin-selected .premium-products .card-body h3 {
+  color: #1C2D24 !important;
+  font-weight: 650;
+  line-height: 1.4;
+}
+.cin-selected .premium-products .card-meta {
+  color: #687269 !important;
+  opacity: 1 !important;
+  line-height: 1.5;
+}
+.cin-selected .premium-products .card-saved,
+.cin-selected .premium-products .card-saved .mono {
+  color: #397D38 !important;
+}
+.cin-selected .premium-products .card-foot .price {
+  color: #1C2D24 !important;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+/* Selected products: lime-green Buy Now inspired Add to cart button */
+.cin-selected .premium-products .add-btn {
+  background: #B8FF6A !important;
+  border: 1px solid #B8FF6A !important;
+  color: #142218 !important;
+  border-radius: 12px;
+  padding: 12px 22px;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 5px 14px rgba(95, 154, 43, 0.16);
+  transition: background .2s, transform .2s, box-shadow .2s !important;
+}
+.cin-selected .premium-products .add-btn:hover {
+  background: #A3F34B !important;
+  border-color: #A3F34B !important;
+  color: #142218 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(95, 154, 43, .26);
+}
+.cin-selected .premium-products .add-btn:focus-visible {
+  outline: 2px solid #244F35;
+  outline-offset: 3px;
+}
+.cin-selected .premium-products .add-btn:active { transform: translateY(0); }
+
+/* ===== SOBA responsive refinement (tablet + phones) ===== */
+html,body{max-width:100%;overflow-x:clip;}
+.cinematic-home,.cin-hero,.cin-copy,.cin-stage{min-width:0;}
+.cinematic-home img,.cin-selected img{max-width:100%;}
+@media (max-width:900px){
+  .header-top .bar{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:10px!important;padding:12px 18px!important;align-items:center;}
+  header.shrink .header-top .bar{padding:10px 18px!important;}
+  .header-top .logo{min-width:0;flex-wrap:wrap;gap:4px 8px;}
+  .header-top .bar-right{margin:0!important;min-width:0;}
+  .header-top .deliver-to,.header-top .search-group{display:none!important;}
+  .header-nav .bar{padding:10px 16px!important;overflow-x:auto;scrollbar-width:none;}
+  .header-nav .bar::-webkit-scrollbar{display:none;}
+  .header-nav nav{display:flex!important;flex-wrap:nowrap!important;justify-content:space-between;min-width:100%;gap:clamp(10px,3vw,26px)!important;}
+  .header-nav nav a{font-size:12px;white-space:nowrap;flex-shrink:0;}
+  .cin-nav{display:none!important;}
+  .cin-hero{display:flex!important;flex-direction:column;align-items:stretch;min-height:auto!important;text-align:center;padding:62px clamp(18px,5vw,40px) 62px!important;gap:16px;}
+  .cin-copy{width:100%;max-width:680px;margin:0 auto;}
+  .cin-kicker{justify-content:center;font-size:9px;letter-spacing:.18em;line-height:1.5;}
+  .cin-title{font-size:clamp(50px,10.5vw,84px)!important;line-height:.98!important;letter-spacing:-.045em!important;max-width:100%;margin:24px 0 18px!important;overflow-wrap:normal;}
+  .cin-title .ghost{display:block!important;padding:0!important;margin-top:8px;font-size:.66em;line-height:1.1;letter-spacing:-.045em;white-space:normal;}
+  .cin-lede{font-size:14px;line-height:1.7;max-width:520px;margin:0 auto;}
+  .cin-actions{justify-content:center;margin-top:24px;gap:10px;}
+  .cin-meta{justify-content:center;margin-top:28px;gap:16px;}
+  .cin-stage{height:340px!important;margin-top:8px;overflow:visible!important;width:100%;}
+  .eco-planet{width:min(54vw,260px);height:min(54vw,260px);}
+  .fc1{right:3%;top:7%;}.fc2{left:3%;bottom:5%;}.fc3{display:none;}
+  .cin-scroll{display:none;}
+  .cin-cats,.cin-selected,.cin-manifesto,.cin-final{padding-left:clamp(18px,5vw,42px)!important;padding-right:clamp(18px,5vw,42px)!important;}
+  .selected-head{align-items:start;gap:12px;}
+  .selected-head h2{font-size:clamp(42px,7vw,70px);}
+  .premium-products{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .premium-products .card{min-width:0;}
+  .premium-products .card-art{height:200px;}
+  .cin-final h2{overflow-wrap:normal;}
+}
+@media (max-width:600px){
+  .header-top .logo .mark{font-size:22px;}
+  .header-top .logo .sub{font-size:8px;letter-spacing:.08em;}
+  .header-top .account-btn .hello{font-size:10px;}
+  .header-top .account-btn #account-label{font-size:12px;}
+  .header-nav .bar{padding:11px 12px!important;}
+  .header-nav nav{gap:clamp(9px,2.8vw,18px)!important;}
+  .header-nav nav a{font-size:clamp(10px,2.7vw,12px);}
+  .cin-hero{padding:50px 20px 50px!important;}
+  .cin-title{font-size:clamp(48px,12.5vw,72px)!important;line-height:1!important;margin:20px 0 16px!important;}
+  .cin-title .ghost{font-size:.61em;line-height:1.15;margin-top:10px;}
+  .cin-kicker{font-size:9px;letter-spacing:.12em;}
+  .cin-kicker:before{width:18px;flex-shrink:0;}
+  .cin-lede{font-size:13px!important;line-height:1.75;}
+  .cin-actions{display:grid;grid-template-columns:1fr;gap:10px;max-width:390px;margin:22px auto 0;}
+  .cin-main-btn,.cin-ghost{width:100%;min-height:46px;font-size:12px;padding:12px 16px;}
+  .cin-meta{gap:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;margin:26px auto 0;}
+  .cin-meta .m{min-width:0;padding:0 6px;}
+  .cin-meta .m+.m{border-left:1px solid rgba(255,255,255,.11);}
+  .cin-meta .v{font-size:16px;}
+  .cin-meta .l{font-size:8px;line-height:1.4;letter-spacing:.06em;}
+  .cin-stage{height:268px!important;margin-top:8px;}
+  .eco-planet{width:min(52vw,205px);height:min(52vw,205px);}
+  .planet-core{font-size:56px;}
+  .float-card{min-width:0;max-width:118px;padding:9px 10px;}
+  .float-card b{font-size:13px;}.float-card span{font-size:7px;line-height:1.5;display:block;}
+  .fc1{top:1%;right:0;}.fc2{bottom:0;left:0;}
+  .cin-cats,.cin-selected,.cin-manifesto,.cin-final{padding-top:66px!important;padding-bottom:66px!important;}
+  .cin-cats-head,.selected-head{flex-direction:column;align-items:flex-start;gap:15px;}
+  .cin-cats-head h2,.selected-head h2{font-size:clamp(44px,11vw,64px)!important;}
+  .cat-row{grid-template-columns:28px minmax(0,1fr);gap:10px;padding:20px 0;}
+  .cat-row .name{font-size:clamp(26px,7.5vw,40px);}
+  .premium-products{grid-template-columns:minmax(0,1fr);gap:18px;}
+  .premium-products .card-art{height:clamp(195px,52vw,280px);}
+  .premium-products .card{min-height:0;}
+  .premium-products .card-foot{gap:12px;flex-wrap:wrap;}
+  .cin-manifesto-grid{grid-template-columns:1fr;}
+  .cin-big{overflow-wrap:break-word;font-size:clamp(36px,9.2vw,56px)!important;}
+  .cin-final h2{font-size:clamp(42px,11vw,66px)!important;line-height:.98!important;}
+  .cin-final .frow{flex-direction:column;align-items:flex-start;gap:16px;}
+  .footer-inner{grid-template-columns:1fr 1fr;gap:25px;}
+}
+@media(max-width:390px){
+  .header-top .bar{padding:10px 12px!important;gap:6px!important;}
+  .header-top .logo .sub{display:block;font-size:7px;}
+  .header-top .account-btn{padding:3px!important;}
+  .header-nav .bar{padding:9px 7px!important;}
+  .header-nav nav{gap:8px!important;}
+  .header-nav nav a{font-size:10px;}
+  .cin-hero{padding:42px 16px 45px!important;}
+  .cin-title{font-size:clamp(43px,12.4vw,49px)!important;letter-spacing:-.055em!important;}
+  .cin-title .ghost{font-size:.59em;}
+  .cin-stage{height:240px!important;}
+  .eco-planet{width:168px;height:168px;}
+  .float-card{max-width:105px;padding:7px 8px;}
+  .float-card b{font-size:12px;}.float-card span{font-size:6.5px;}
+  .footer-inner{grid-template-columns:1fr;}
+}
+@media(max-width:340px){
+  .header-top .logo .sub{display:none;}
+  .cin-kicker{letter-spacing:.045em;font-size:8px;}
+  .cin-title{font-size:40px!important;}
+  .header-nav nav a{font-size:9px;}
+  .cin-meta .l{font-size:7px;}
+  .eco-planet{width:150px;height:150px;}
+}
+
+
+/* Mobile scroll animation repair: animate each step as it enters the viewport,
+   rather than firing all three when the containing section first appears. */
+@media (max-width:900px) and (prefers-reduced-motion:no-preference){
+  #about-section.motion-play .zigzag-row,
+  #about-section.in-view .zigzag-row,
+  #about-section.motion-play .zigzag-icon-badge,
+  .band-forest.motion-play .impact-stat,
+  .band-forest.in-view .impact-stat,
+  #reviews-section.motion-play .quote-card,
+  #reviews-section.in-view .quote-card{
+    animation:none !important;
+  }
+  #about-section .zigzag-row.mobile-motion-visible .zigzag-media{
+    animation:sobaMobileIcon .8s cubic-bezier(.2,1.15,.3,1) both !important;
+  }
+  #about-section .zigzag-row.mobile-motion-visible .zigzag-text{
+    animation:sobaMobileText .8s cubic-bezier(.2,.8,.2,1) both !important;
+  }
+  .band-forest .impact-stat.mobile-motion-visible,
+  #reviews-section .quote-card.mobile-motion-visible{
+    animation:sobaMobileText .8s cubic-bezier(.2,.8,.2,1) both !important;
+  }
+  @keyframes sobaMobileIcon{
+    from{opacity:.2;transform:translateY(24px) scale(.75) rotate(-8deg);filter:blur(3px)}
+    to{opacity:1;transform:translateY(0) scale(1) rotate(0);filter:none}
+  }
+  @keyframes sobaMobileText{
+    from{opacity:.15;transform:translateY(34px);filter:blur(4px)}
+    to{opacity:1;transform:translateY(0);filter:none}
+  }
+}
+
 </style>
 </head>
 <body>
-<div id="scroll-progress"></div>
-
 <div id="grain"></div>
 <div id="spotlight"></div>
 
@@ -2016,11 +2332,11 @@ body{background:#0A0D0A;}
 <header id="site-header">
   <div class="header-top">
     <div class="bar">
-      <div class="logo" onclick="document.getElementById('home').scrollIntoView({behavior:'smooth'})">
+      <div class="logo" onclick="navTo('home-top')">
         <span class="mark">Soba</span>
         <span class="sub">sobadahama · nature</span>
       </div>
-      <div class="deliver-to" onclick="document.getElementById('contact-section').scrollIntoView({behavior:'smooth'})">
+      <div class="deliver-to" onclick="navTo('contact-section')">
         <span class="pin">📍</span>
         <span>Deliver to<b>Colombo, LK</b></span>
       </div>
@@ -2040,11 +2356,12 @@ body{background:#0A0D0A;}
   <div class="header-nav">
     <div class="bar">
       <nav id="navbar">
-        <a class="nav-link active home-link" onclick="document.getElementById('home').scrollIntoView({behavior:'smooth'})">Home</a>
-        <a class="nav-link" data-cat="All" onclick="setCat('All')">Shop</a>
-        <a class="nav-link" data-section="about-section" onclick="document.getElementById('about-section').scrollIntoView({behavior:'smooth'})">About</a>
-        <a class="nav-link" data-section="reviews-section" onclick="document.getElementById('reviews-section').scrollIntoView({behavior:'smooth'})">Reviews</a>
-        <a class="nav-link" onclick="document.getElementById('contact-section').scrollIntoView({behavior:'smooth'})">Contact</a>
+        <a class="nav-link active home-link" data-nav="home" onclick="navTo('home-top')">Home</a>
+        <a class="nav-link" data-nav="shop" href="modules/customer/products.php">Shop</a>
+        <a class="nav-link" data-nav="about" onclick="navTo('about-section')">About</a>
+        <a class="nav-link" data-nav="reviews" onclick="navTo('reviews-section')">Reviews</a>
+        <a class="nav-link" data-nav="contact" onclick="navTo('contact-section')">Contact</a>
+        <div class="nav-indicator" id="nav-indicator"></div>
       </nav>
     </div>
   </div>
@@ -2054,9 +2371,7 @@ body{background:#0A0D0A;}
 
 <section class="cinematic-home" id="home-top">
   <div class="cin-nav">
-    <div class="cin-logo" onclick="document.getElementById('home-top').scrollIntoView({behavior:'smooth'})"></div>
-   
-   
+    <div class="cin-logo" onclick="navTo('home-top')"></div>
   </div>
 
   <div class="cin-hero">
@@ -2066,8 +2381,8 @@ body{background:#0A0D0A;}
       <h1 class="cin-title">LIVE<br><em>LIGHT.</em><span class="ghost">WASTE LESS.</span></h1>
       <p class="cin-lede">Soba turns everyday shopping into a visible act of change — locally made objects, better materials and every gram of plastic you skip counted in real time.</p>
       <div class="cin-actions">
-        <button class="cin-main-btn" onclick="document.getElementById('shop')?.scrollIntoView({behavior:'smooth'})">Explore the collection ↗</button>
-        <button class="cin-ghost" onclick="document.getElementById('about-section').scrollIntoView({behavior:'smooth'})">How Soba works</button>
+        <button class="cin-main-btn" onclick="navTo('shop')">Explore the collection ↗</button>
+        <button class="cin-ghost" onclick="navTo('about-section')">How Soba works</button>
       </div>
       <div class="cin-meta">
         <div class="m"><div class="v">12+</div><div class="l">Local makers</div></div>
@@ -2099,18 +2414,34 @@ body{background:#0A0D0A;}
     <div class="cin-big">What you buy matters.<br><em>What you avoid</em> matters too.</div>
     <div class="cin-manifesto-grid">
       <p>We pair each product with the single-use plastic it replaces. So instead of an abstract “eco” claim, you get a number you can actually see, shop with and remember.</p>
-      <div class="cin-linkrow"><div class="cin-circle-link" onclick="document.getElementById('shop')?.scrollIntoView({behavior:'smooth'})">View<br>collection ↗</div></div>
+      <div class="cin-linkrow"><div class="cin-circle-link" onclick="navTo('shop')">View<br>collection ↗</div></div>
     </div>
   </section>
 
-  <section class="cin-cats">
+  <section class="cin-cats" id="shop">
     <div class="cin-cats-head"><div class="small">02 / Shop by intention</div><h2>Choose<br>your swap.</h2></div>
     <div class="cat-stack">
-      <div class="cat-row" onclick="setCat('Kitchenware')"><span class="no">01</span><span class="name">Kitchenware</span><span class="desc">Coconut · bamboo · reusable</span></div>
-      <div class="cat-row" onclick="setCat('Personal Care')"><span class="no">02</span><span class="name">Personal Care</span><span class="desc">Bars · refills · plant fibre</span></div>
-      <div class="cat-row" onclick="setCat('Stationery')"><span class="no">03</span><span class="name">Stationery</span><span class="desc">Recycled · tree-free · plantable</span></div>
-      <div class="cat-row" onclick="setCat('Accessories')"><span class="no">04</span><span class="name">Accessories</span><span class="desc">Upcycled · cork · cotton</span></div>
+    <div class="cat-row" onclick="setCat('kitchen')">
+        <span class="no">01</span>
+        <span class="name">Kitchen & Dining</span>
+        <span class="desc">Coconut · bamboo · reusable</span>
     </div>
+    <div class="cat-row" onclick="setCat('personal')">
+        <span class="no">02</span>
+        <span class="name">Personal Care</span>
+        <span class="desc">Bars · refills · plant fibre</span>
+    </div>
+    <div class="cat-row" onclick="setCat('stationery')">
+        <span class="no">03</span>
+        <span class="name">Stationery</span>
+        <span class="desc">Recycled · tree-free · plantable</span>
+    </div>
+    <div class="cat-row" onclick="setCat('Lifestyle')">
+        <span class="no">04</span>
+        <span class="name">Lifestyle</span>
+        <span class="desc">Upcycled · cork · cotton</span>
+    </div>
+</div>
   </section>
 
   <section class="cin-selected">
@@ -2120,9 +2451,10 @@ body{background:#0A0D0A;}
 
   <section class="cin-final">
     <h2>MAKE A<br><span>BETTER SWAP.</span></h2>
-    <div class="frow"><p>Less packaging. More intention.<br>Sri Lanka, one cart at a time.</p><button class="fbtn" onclick="document.getElementById('shop')?.scrollIntoView({behavior:'smooth'})">Start shopping ↗</button></div>
+    <div class="frow"><p>Less packaging. More intention.<br>Sri Lanka, one cart at a time.</p><button class="fbtn" onclick="navTo('shop')">Start shopping ↗</button></div>
   </section>
 </section>
+
 <section class="story-section band-sand reveal" id="about-section">
   <div class="blob blob-a"></div>
   <div class="story-head story-head-enhanced">
@@ -2197,7 +2529,7 @@ body{background:#0A0D0A;}
   <div class="cta-inner">
     <span class="cta-eyebrow">Ready when you are</span>
     <h2>Your first swap<br>could start today.</h2>
-    <button class="btn-cta" onclick="document.getElementById('shop')?.scrollIntoView({behavior:'smooth'})">Browse the catalogue →</button>
+    <button class="btn-cta" onclick="navTo('shop')">Browse the catalogue →</button>
   </div>
   <div class="cta-marquee">
     <div class="cta-marquee-track">
@@ -2228,8 +2560,8 @@ body{background:#0A0D0A;}
     </div>
     <div class="footer-col">
       <div class="footer-title">Company</div>
-      <a onclick="document.getElementById('about-section').scrollIntoView({behavior:'smooth'})">About</a>
-      <a onclick="document.getElementById('shop')?.scrollIntoView({behavior:'smooth'})">Our impact</a>
+      <a onclick="navTo('about-section')">About</a>
+      <a onclick="navTo('shop')">Our impact</a>
     </div>
     <div class="footer-col">
       <div class="footer-title">Contact</div>
@@ -2238,7 +2570,7 @@ body{background:#0A0D0A;}
       <span>📍 Colombo, Sri Lanka</span>
     </div>
   </div>
-  <div class="footer-bottom">Soba — a course prototype for E-Commerce / Web Application Development · figures are illustrative</div>
+  <div class="footer-bottom"> Soba © 2026 · Sustainable choices. Better living. </div>
 </footer>
 
 <div class="overlay" id="overlay" onclick="closeCart()"></div>
@@ -2261,82 +2593,9 @@ body{background:#0A0D0A;}
   </div>
 </div>
 
-<!-- Order Confirmation -->
-<div class="modal-overlay" id="conf-overlay" onclick="if(event.target===this) closeConfirmation()">
-  <div class="conf-card">
-    <div class="conf-badge">🎉</div>
-    <h2>Congratulations!</h2>
-    <div class="sub" id="conf-sub">You just saved 0g of plastic!</div>
-    <div class="conf-invoice" id="conf-invoice"></div>
-    <div class="conf-actions">
-      <button class="btn-ghost" onclick="closeConfirmation()">Continue shopping</button>
-      <button class="btn-primary" onclick="closeConfirmation(); openProfile();">View my orders</button>
-    </div>
-  </div>
-</div>
 
-<!-- Sign-in modal -->
-<div class="modal-overlay" id="auth-overlay" onclick="if(event.target===this) closeAuth()">
-  <div class="auth-card">
-    <button class="auth-close" onclick="closeAuth()">✕</button>
-    <div class="auth-head">
-      <span class="leaf-mark">🌿</span>
-      <h2>Sign in to Soba</h2>
-      <p>Payment needs an account, so your eco-impact and orders stay saved to you.</p>
-    </div>
-    <div class="gate-note" id="gate-note" style="display:none;">
-      🔒 Sign in with Google or email to continue to payment.
-    </div>
-    <button class="google-btn" onclick="signInWithGoogle()">
-      <span class="google-g">G</span> Continue with Google
-    </button>
-    <div class="divider">or with email</div>
-    <label class="field-label">Email address</label>
-    <input class="field-input" id="auth-email" type="email" placeholder="you@example.com">
-    <label class="field-label">Name</label>
-    <input class="field-input" id="auth-name" type="text" placeholder="Your name">
-    <button class="email-submit" onclick="signInWithEmail()">Sign in with email</button>
-    <div class="auth-foot">By continuing you agree this is a course prototype, not a real account.</div>
-  </div>
-</div>
 
-<!-- Profile drawer -->
-<div class="overlay" id="profile-overlay" onclick="closeProfile()"></div>
-<div class="drawer" id="profile-drawer">
-  <div class="drawer-head">
-    <h2>Your profile</h2>
-    <button class="drawer-close" onclick="closeProfile()">✕</button>
-  </div>
-  <div class="profile-head">
-    <div class="profile-avatar" id="profile-avatar">S</div>
-    <div>
-      <div class="profile-name" id="profile-name">—</div>
-      <div class="profile-email" id="profile-email">—</div>
-    </div>
-  </div>
-  <div class="profile-body">
-    <div class="profile-stat-grid">
-      <div class="stat-card">
-        <div class="num mono" id="profile-grams">0g</div>
-        <div class="lbl">Plastic avoided</div>
-      </div>
-      <div class="stat-card">
-        <div class="num mono" id="profile-orders">0</div>
-        <div class="lbl">Orders placed</div>
-      </div>
-    </div>
-    <div class="profile-section-title">Eco level</div>
-    <div class="badge-track" id="badge-track"></div>
 
-    <div class="profile-section-title">Shipping addresses</div>
-    <div id="addr-list"></div>
-
-    <div class="profile-section-title">Order history</div>
-    <div id="order-list"></div>
-
-    <button class="signout-btn" onclick="signOut()">Sign out</button>
-  </div>
-</div>
 
 <!-- Product Details modal -->
 <div class="modal-overlay" id="pd-overlay" onclick="if(event.target===this) closeProductDetail()">
@@ -2391,20 +2650,21 @@ body{background:#0A0D0A;}
 </div>
 
 <script>
-const PRODUCTS = [
-  {id:1, name:"Coconut Shell Bowl Set", cat:"Kitchenware", material:"Coconut Shell", icon:"🥥", price:2450, saved:340, cert:"Handmade LK", desc:"A set of four bowls carved from reclaimed coconut shells by artisans in Matara. Each piece is sanded smooth and sealed with food-safe coconut oil — no two bowls are identical."},
-  {id:2, name:"Bamboo Cutlery Travel Kit", cat:"Kitchenware", material:"Bamboo", icon:"🥢", price:1200, saved:85, cert:"FSC Bamboo", desc:"A fork, knife, spoon, and chopsticks in a cotton roll pouch. Replaces disposable cutlery on every takeaway order."},
-  {id:3, name:"Beeswax Food Wraps (3pk)", cat:"Kitchenware", material:"Cotton & Beeswax", icon:"🍯", price:1650, saved:160, cert:"Organic", desc:"Cotton cloth infused with beeswax, tree resin, and jojoba oil. Warm it in your hands to wrap leftovers instead of reaching for cling film."},
-  {id:4, name:"Loofah Dish Sponge", cat:"Kitchenware", material:"Plant Fibre", icon:"🧽", price:450, saved:60, cert:"Compostable", desc:"Grown, not manufactured. This natural loofah scrubs pots clean and composts fully at the end of its life."},
-  {id:5, name:"Shampoo Bar — Neem & Lime", cat:"Personal Care", material:"Plant Fibre", icon:"🧼", price:890, saved:210, cert:"Vegan", desc:"A concentrated bar that replaces roughly three plastic shampoo bottles. Lathers well for all hair types."},
-  {id:6, name:"Bamboo Toothbrush (4pk)", cat:"Personal Care", material:"Bamboo", icon:"🪥", price:760, saved:120, cert:"FSC Bamboo", desc:"Soft-bristle brushes with handles from sustainably farmed bamboo. A family pack for a full plastic-free bathroom."},
-  {id:7, name:"Reef-Safe Solid Sunscreen", cat:"Personal Care", material:"Plant Fibre", icon:"☀️", price:1350, saved:95, cert:"Reef-Safe", desc:"Mineral SPF 30 in a compostable paper tube — no plastic bottle, and no oxybenzone to harm coral reefs."},
-  {id:8, name:"Refillable Deodorant Case", cat:"Personal Care", material:"Metal & Paper", icon:"🧴", price:1050, saved:130, cert:"Zero-Waste", desc:"A metal case that takes compostable cardboard refills, so you throw away the paper insert, never the case."},
-  {id:9, name:"Handmade Paper Notebook", cat:"Stationery", material:"Recycled Paper", icon:"📓", price:680, saved:40, cert:"Tree-Free", desc:"Pages pressed from elephant dung fibre, a Sri Lankan craft that keeps forests standing and pulp mills idle."},
-  {id:10, name:"Seed Pencils (5pk)", cat:"Stationery", material:"Recycled Paper", icon:"✏️", price:520, saved:55, cert:"Plantable", desc:"Write until the pencil is a stub, then plant the capsule end — each one grows into an herb or flower."},
-  {id:11, name:"Recycled Cotton Tote", cat:"Accessories", material:"Recycled Cotton", icon:"👜", price:990, saved:190, cert:"Upcycled", desc:"Woven from reclaimed cotton offcuts from garment factories in Katunayake. Strong enough for a full week of groceries."},
-  {id:12, name:"Cork Yoga Mat", cat:"Accessories", material:"Cork & Rubber", icon:"🧘", price:5200, saved:480, cert:"Natural Cork", desc:"A natural cork surface over a natural rubber base — no PVC. Cork's texture actually grips better the more you sweat."},
+const dbProductsFromPhp = <?php echo json_encode($dbProducts ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+const fallbackProducts = [
+  {id:1, name:"Coconut Shell Bowl Set", cat:"Kitchenware", material:"Coconut Shell", icon:"🥥", price:2450, saved:340, cert:"Handmade LK", desc:"A set of four bowls carved from reclaimed coconut shells by artisans in Matara. Each piece is sanded smooth and sealed with food-safe coconut oil — no two bowls are identical.", images:["https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80"]},
+  {id:2, name:"Bamboo Cutlery Travel Kit", cat:"Kitchenware", material:"Bamboo", icon:"🥢", price:1200, saved:85, cert:"FSC Bamboo", desc:"A fork, knife, spoon, and chopsticks in a cotton roll pouch. Replaces disposable cutlery on every takeaway order.", images:["https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80"]},
+  {id:3, name:"Beeswax Food Wraps (3pk)", cat:"Kitchenware", material:"Cotton & Beeswax", icon:"🍯", price:1650, saved:160, cert:"Organic", desc:"Cotton cloth infused with beeswax, tree resin, and jojoba oil. Warm it in your hands to wrap leftovers instead of reaching for cling film.", images:["https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80"]},
+  {id:4, name:"Loofah Dish Sponge", cat:"Kitchenware", material:"Plant Fibre", icon:"🧽", price:450, saved:60, cert:"Compostable", desc:"Grown, not manufactured. This natural loofah scrubs pots clean and composts fully at the end of its life.", images:["https://images.unsplash.com/photo-1585751119414-ef2636f8aede?auto=format&fit=crop&w=800&q=80"]},
+  {id:5, name:"Shampoo Bar — Neem & Lime", cat:"Personal Care", material:"Plant Fibre", icon:"🧼", price:890, saved:210, cert:"Vegan", desc:"A concentrated bar that replaces roughly three plastic shampoo bottles. Lathers well for all hair types.", images:["https://images.unsplash.com/photo-1608248597359-0021b369c0d3?auto=format&fit=crop&w=800&q=80"]},
+  {id:6, name:"Bamboo Toothbrush (4pk)", cat:"Personal Care", material:"Bamboo", icon:"🪥", price:760, saved:120, cert:"FSC Bamboo", desc:"Soft-bristle brushes with handles from sustainably farmed bamboo. A family pack for a full plastic-free bathroom.", images:["https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?auto=format&fit=crop&w=800&q=80"]},
+  {id:7, name:"Reef-Safe Solid Sunscreen", cat:"Personal Care", material:"Plant Fibre", icon:"☀️", price:1350, saved:95, cert:"Reef-Safe", desc:"Mineral SPF 30 in a compostable paper tube — no plastic bottle, and no oxybenzone to harm coral reefs.", images:["https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=800&q=80"]},
+  {id:8, name:"Refillable Deodorant Case", cat:"Personal Care", material:"Metal & Paper", icon:"🧴", price:1050, saved:130, cert:"Zero-Waste", desc:"A metal case that takes compostable cardboard refills, so you throw away the paper insert, never the case.", images:["https://images.unsplash.com/photo-1585751119414-ef2636f8aede?auto=format&fit=crop&w=800&q=80"]},
+  {id:9, name:"Handmade Paper Notebook", cat:"Stationery", material:"Recycled Paper", icon:"📓", price:680, saved:40, cert:"Tree-Free", desc:"Pages pressed from elephant dung fibre, a Sri Lankan craft that keeps forests standing and pulp mills idle.", images:["https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80"]},
+  {id:10, name:"Seed Pencils (5pk)", cat:"Stationery", material:"Recycled Paper", icon:"✏️", price:520, saved:55, cert:"Plantable", desc:"Write until the pencil is a stub, then plant the capsule end — each one grows into an herb or flower.", images:["https://images.unsplash.com/photo-1585336261026-7f573f055375?auto=format&fit=crop&w=800&q=80"]}
 ];
+
+let PRODUCTS = (Array.isArray(dbProductsFromPhp) && dbProductsFromPhp.length > 0) ? dbProductsFromPhp : fallbackProducts;
 
 const REVIEWS = {
   1:[{name:"Dilani K.", stars:5, text:"Beautiful finish and genuinely useful — using it for rice every day."},{name:"Ashan R.", stars:4, text:"Lovely bowls, slightly smaller than I expected but great quality."}],
@@ -2421,6 +2681,17 @@ let activeMaterial = "All";
 let cart = {}; // id -> qty
 let wishlist = new Set(); // session-only favorites
 
+// Sync cart from shared localStorage so cart persists across home and shop pages
+try {
+  const storedCart = JSON.parse(localStorage.getItem('soba_cart') || '[]');
+  if (Array.isArray(storedCart)) {
+    storedCart.forEach(item => {
+      if (item && item.id) cart[item.id] = (cart[item.id] || 0) + (item.quantity || 1);
+    });
+  }
+} catch(e) {}
+
+
 function renderFilters(){
   const materials = ["All", ...new Set(PRODUCTS.map(p=>p.material))];
   const chipsEl = document.getElementById('material-chips');
@@ -2428,47 +2699,28 @@ function renderFilters(){
     `<button class="chip ${m===activeMaterial?'active':''}" onclick="setMaterial('${m}')">${m}</button>`
   ).join('');
 
-  // Update Nav links active state
-  document.querySelectorAll('.nav-link').forEach(link => {
-    if(link.getAttribute('data-cat') === activeCat) {
-      link.classList.add('active');
-    } else {
-      link.classList.remove('active');
-    }
-  });
-
   // Update feature-icon row active state (Ecova-style highlighted tile)
   document.querySelectorAll('.feature-tile').forEach(tile => {
     tile.classList.toggle('active', tile.getAttribute('data-cat') === activeCat);
   });
 }
 
-function goToSearch(){
+function goToSearch() {
   const q = document.getElementById('search-input')?.value.trim() || '';
-  window.location.href = q ? `products.html?search=${encodeURIComponent(q)}` : 'products.html';
+  window.location.href = q 
+    ? `modules/customer/products.php?search=${encodeURIComponent(q)}` 
+    : 'modules/customer/products.php';
 }
 
-function setCat(c){
-  const shop = document.getElementById('shop');
-  if(!shop){ activeCat = c; renderFilters(); renderGrid(); return; }
-  if(c === activeCat){ shop.scrollIntoView({behavior:'smooth'}); return; }
-  const bar = document.getElementById('route-bar');
-
-  // simulate a "new page" navigation: progress bar + fade-out/in swap
-  bar.classList.remove('loading'); void bar.offsetWidth; bar.classList.add('loading');
-  shop.classList.remove('route-in');
-  shop.classList.add('route-out');
-
-  setTimeout(() => {
-    activeCat = c;
-    renderFilters();
-    renderGrid();
-    shop.classList.remove('route-out');
-    shop.classList.add('route-in');
-    shop.scrollIntoView({behavior:'smooth'});
-  }, 220);
-
-  setTimeout(() => bar.classList.remove('loading'), 650);
+function setCat(c) {
+  const categoryName = (c === 'All') ? '' : c;
+  
+  // Folder structure එකට ගැලපෙන විදිහට products.php එකට category එක යවනවා
+  const url = categoryName 
+    ? `modules/customer/products.php?category=${encodeURIComponent(categoryName)}` 
+    : `modules/customer/products.php`;
+    
+  window.location.href = url;
 }
 
 function setMaterial(m){ activeMaterial = m; renderFilters(); renderGrid(); }
@@ -2492,7 +2744,11 @@ function matchesFilters(p){
   return true;
 }
 
-let currentUser = null; // {name, email, method}
+
+let currentUser = <?php echo json_encode($sessionUser, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+if (!currentUser) {
+  try { currentUser = JSON.parse(localStorage.getItem('soba_user') || 'null'); } catch(e) { currentUser = null; }
+}
 let lifetimeGrams = 0;
 let orderCount = 0;
 let orders = []; // {id, date, items, total, grams, status}
@@ -2511,13 +2767,18 @@ function renderGrid(){
   const resultCountEl = document.getElementById('result-count');
   if(resultCountEl) resultCountEl.textContent = list.length + " items";
   const catHeadEl = document.getElementById('category-head-title');
-  if(catHeadEl) catHeadEl.textContent = activeCat === "All" ? "The catalogue" : activeCat;
-  gridEl.innerHTML = list.length ? list.map((p,idx) => `
-    <div class="card" onclick="openProductDetail(${p.id})" style="cursor:pointer; --i:${idx};">
+  gridEl.innerHTML = list.length ? list.map((p,idx) => {
+    const primaryImg = (p.images && p.images.length > 0) ? p.images[0] : (p.image || null);
+    const artHtml = primaryImg
+      ? `<img src="${primaryImg}" alt="${p.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"><span style="display:none;">${p.icon || '🌱'}</span>`
+      : `<span>${p.icon || '🌱'}</span>`;
+
+    return `
+    <div class="card" onclick="goToProductDetails(${p.id})" style="cursor:pointer; --i:${idx};">
       <div class="card-art">
         <span class="card-cert">${p.cert}</span>
         <button class="card-wish ${wishlist.has(p.id)?'active':''}" onclick="event.stopPropagation(); toggleWish(${p.id})">${wishlist.has(p.id) ? '♥' : '♡'}</button>
-        <span>${p.icon}</span>
+        ${artHtml}
       </div>
       <div class="card-body">
         <h3>${p.name}</h3>
@@ -2528,8 +2789,8 @@ function renderGrid(){
           <button class="add-btn" id="btn-${p.id}" onclick="event.stopPropagation(); addToCart(${p.id})">Add to cart</button>
         </div>
       </div>
-    </div>
-  `).join('') : `<div class="orders-empty" style="grid-column:1/-1; text-align:center; padding:40px 0;">No products match — try clearing a filter or search term.</div>`;
+    </div>`;
+  }).join('') : `<div class="orders-empty" style="grid-column:1/-1; text-align:center; padding:40px 0;">No products match — try clearing a filter or search term.</div>`;
 }
 
 function toggleWish(id){
@@ -2549,13 +2810,14 @@ function toggleWishPanel(){
   document.getElementById('shop')?.scrollIntoView({behavior:'smooth'});
 }
 
-
 function addToCart(id){
   cart[id] = (cart[id]||0) + 1;
   const btn = document.getElementById('btn-'+id);
-  btn.textContent = "Added ✓";
-  btn.classList.add('added');
-  setTimeout(()=>{ btn.textContent="Add to cart"; btn.classList.remove('added'); }, 900);
+  if(btn){
+    btn.textContent = "Added ✓";
+    btn.classList.add('added');
+    setTimeout(()=>{ btn.textContent="Add to cart"; btn.classList.remove('added'); }, 900);
+  }
   const cartBtn = document.getElementById('cart-btn');
   if(cartBtn){ cartBtn.classList.remove('bump'); void cartBtn.offsetWidth; cartBtn.classList.add('bump'); }
   updateAll();
@@ -2571,6 +2833,7 @@ function cartStats(){
   let items=0, grams=0, total=0;
   for(const id in cart){
     const p = PRODUCTS.find(p=>p.id==id);
+    if(!p) continue;
     const q = cart[id];
     items += q; grams += p.saved*q; total += p.price*q;
   }
@@ -2588,9 +2851,21 @@ function updateAll(){
   const gramsEl = document.getElementById('grams-saved');
   if(gramsEl) gramsEl.textContent = grams.toLocaleString();
 
-  // jar fill: cap visual at 2000g for full jar (only runs if the jar visual exists on the page)
+  // Save cart state into shared localStorage so cart page stays in sync
+  try {
+    const list = [];
+    for (const id in cart) {
+      const p = PRODUCTS.find(x => x.id == id);
+      if (p) {
+        list.push({ ...p, quantity: cart[id], selected: true });
+      }
+    }
+    localStorage.setItem('soba_cart', JSON.stringify(list));
+  } catch(e) {}
+
+  // jar fill: cap visual at 2000g for full jar
   const pct = Math.min(grams / 2000, 1);
-  const jarHeight = 228; // full height of liquid column
+  const jarHeight = 228;
   const h = jarHeight * pct;
   const liquid = document.getElementById('jarLiquid');
   const top = document.getElementById('jarLiquidTop');
@@ -2606,6 +2881,7 @@ function updateAll(){
 function renderDrawer(items, grams, total){
   const body = document.getElementById('drawer-body');
   const foot = document.getElementById('drawer-foot');
+  if(!body || !foot) return;
   if(items===0){
     body.innerHTML = `<div class="drawer-empty">Your cart is empty. Add something that skips the plastic.</div>`;
     foot.style.display = 'none';
@@ -2614,10 +2890,16 @@ function renderDrawer(items, grams, total){
   foot.style.display = 'block';
   body.innerHTML = Object.keys(cart).map(id=>{
     const p = PRODUCTS.find(p=>p.id==id);
+    if (!p) return '';
     const q = cart[id];
+    const pImg = (p.images && p.images.length > 0) ? p.images[0] : (p.image || null);
+    const artContent = pImg 
+      ? `<img src="${pImg}" alt="${p.name}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" onerror="this.parentElement.textContent='${p.icon || '🌱'}';">`
+      : `<span>${p.icon || '🌱'}</span>`;
+
     return `
       <div class="cart-item">
-        <div class="art">${p.icon}</div>
+        <div class="art" style="overflow:hidden; display:flex; align-items:center; justify-content:center;">${artContent}</div>
         <div class="info">
           <h4>${p.name}</h4>
           <div class="sub">Rs. ${p.price.toLocaleString()} · ${p.saved}g saved each</div>
@@ -2637,21 +2919,20 @@ function renderDrawer(items, grams, total){
 }
 
 function openCart(){
-  document.getElementById('drawer').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
+  document.getElementById('drawer')?.classList.add('open');
+  document.getElementById('overlay')?.classList.add('open');
 }
 function closeCart(){
-  document.getElementById('drawer').classList.remove('open');
-  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('drawer')?.classList.remove('open');
+  document.getElementById('overlay')?.classList.remove('open');
 }
 function checkout(){
   const {items} = cartStats();
   if(items===0) return;
 
   if(!currentUser){
-    document.getElementById('gate-note').style.display = 'flex';
     closeCart();
-    openAuth();
+    window.location.href = 'login.php';
     return;
   }
 
@@ -2662,28 +2943,29 @@ function checkout(){
 /* ===== PayHere payment ===== */
 function openPayHere(){
   const {items, total, grams} = cartStats();
-  const tree = document.getElementById('plant-tree').checked ? 150 : 0;
+  const tree = document.getElementById('plant-tree')?.checked ? 150 : 0;
   document.getElementById('pay-summary').innerHTML = `
     <div class="row"><span>Items</span><span class="v">${items}</span></div>
     <div class="row"><span>Plastic avoided</span><span class="v">${grams.toLocaleString()} g</span></div>
     ${tree ? `<div class="row"><span>Plant-a-tree add-on</span><span class="v">Rs. 150</span></div>` : ''}
     <div class="row"><span>Total to pay</span><span class="v">Rs. ${(total+tree).toLocaleString()}</span></div>
   `;
-  document.getElementById('pay-address').value = "";
-  document.getElementById('pay-overlay').classList.add('open');
+  const addr = document.getElementById('pay-address');
+  if(addr) addr.value = "";
+  document.getElementById('pay-overlay')?.classList.add('open');
 }
 function closePayHere(){
-  document.getElementById('pay-overlay').classList.remove('open');
+  document.getElementById('pay-overlay')?.classList.remove('open');
 }
 function selectPayMethod(el){
   document.querySelectorAll('.pay-method').forEach(m=>m.classList.remove('active'));
   el.classList.add('active');
 }
 function completePayment(){
-  const address = document.getElementById('pay-address').value.trim();
-  if(!address){ alert("Please add a delivery address."); return; }
+  const address = document.getElementById('pay-address')?.value.trim();
+  if(!address){ sobaToast("Please add a delivery address.", true); return; }
   const {items,total,grams} = cartStats();
-  const tree = document.getElementById('plant-tree').checked ? 150 : 0;
+  const tree = document.getElementById('plant-tree')?.checked ? 150 : 0;
 
   const order = {
     id: "SOBA-" + Math.floor(10000 + Math.random()*89999),
@@ -2711,16 +2993,31 @@ function completePayment(){
 
 /* ===== Order confirmation ===== */
 function openConfirmation(order){
-  document.getElementById('conf-sub').textContent = `You just saved ${order.grams.toLocaleString()}g of plastic!`;
-  document.getElementById('conf-invoice').innerHTML = `
-    <div class="oid">Order ${order.id} · ${order.date}</div>
-    ${order.items.map(i => `<div class="item-row"><span>${i.name} × ${i.qty}</span></div>`).join('')}
-    <div class="item-row total"><span>Total paid</span><span class="v">Rs. ${order.total.toLocaleString()}</span></div>
-  `;
-  document.getElementById('conf-overlay').classList.add('open');
+  const sub = document.getElementById('conf-sub');
+  if(sub) sub.textContent = `You just saved ${order.grams.toLocaleString()}g of plastic!`;
+  const invoice = document.getElementById('conf-invoice');
+  if(invoice){
+    invoice.innerHTML = `
+      <div class="oid">Order ${order.id} · ${order.date}</div>
+      ${order.items.map(i => `<div class="item-row"><span>${i.name} × ${i.qty}</span></div>`).join('')}
+      <div class="item-row total"><span>Total paid</span><span class="v">Rs. ${order.total.toLocaleString()}</span></div>
+    `;
+  }
+  document.getElementById('conf-overlay')?.classList.add('open');
 }
 function closeConfirmation(){
-  document.getElementById('conf-overlay').classList.remove('open');
+  document.getElementById('conf-overlay')?.classList.remove('open');
+}
+
+/* Add the selected product to the existing shared cart, then open the existing cart page. */
+function addSelectedToCartAndGo(id) {
+  addToCart(id); // updateAll() saves to localStorage key 'soba_cart'
+  window.location.href = 'modules/customer/cart.php';
+}
+
+/* Open the EXISTING customer product details page. No new page is created. */
+function goToProductDetails(id) {
+  window.location.href = 'modules/customer/product_details.php?id=' + encodeURIComponent(id);
 }
 
 /* ===== Product Detail modal ===== */
@@ -2728,7 +3025,13 @@ let pdProduct = null, pdQty = 1;
 function openProductDetail(id){
   pdProduct = PRODUCTS.find(p=>p.id===id);
   pdQty = 1;
-  document.getElementById('pd-art').textContent = pdProduct.icon;
+  const pdArtEl = document.getElementById('pd-art');
+  const pdImg = (pdProduct.images && pdProduct.images.length > 0) ? pdProduct.images[0] : (pdProduct.image || null);
+  if (pdImg) {
+    pdArtEl.innerHTML = `<img src="${pdImg}" alt="${pdProduct.name}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;" onerror="this.parentElement.textContent='${pdProduct.icon || '🌱'}'">`;
+  } else {
+    pdArtEl.textContent = pdProduct.icon || '🌱';
+  }
   document.getElementById('pd-cert').textContent = pdProduct.cert;
   document.getElementById('pd-name').textContent = pdProduct.name;
   document.getElementById('pd-cat').textContent = pdProduct.cat;
@@ -2744,10 +3047,10 @@ function openProductDetail(id){
       <div class="txt">${r.text}</div>
     </div>
   `).join('') : `<div class="review-empty">No reviews yet — verified buyers can be the first.</div>`;
-  document.getElementById('pd-overlay').classList.add('open');
+  document.getElementById('pd-overlay')?.classList.add('open');
 }
 function closeProductDetail(){
-  document.getElementById('pd-overlay').classList.remove('open');
+  document.getElementById('pd-overlay')?.classList.remove('open');
 }
 function pdChangeQty(delta){
   pdQty = Math.max(1, pdQty + delta);
@@ -2761,58 +3064,48 @@ function pdAddToCart(){
   setTimeout(()=>{ btn.textContent = "Add to cart"; closeProductDetail(); }, 700);
 }
 
-/* ===== Auth ===== */
+/* ===== Auth & Navigation ===== */
 function openAuth(){
-  document.getElementById('auth-overlay').classList.add('open');
-}
-function closeAuth(){
-  document.getElementById('auth-overlay').classList.remove('open');
-  document.getElementById('gate-note').style.display = 'none';
+  window.location.href = 'login.php';
 }
 function completeSignIn(name, email){
   currentUser = {name, email};
-  closeAuth();
+  try { localStorage.setItem('soba_user', JSON.stringify(currentUser)); } catch(e) {}
   updateAccountUI();
   updateAll();
-  // if they were mid-checkout (cart has items), continue straight to payment
   const {items} = cartStats();
   if(items > 0) openPayHere();
 }
-function signInWithGoogle(){
-  // mock Google OAuth — a real build calls Google's OAuth endpoint here
-  completeSignIn("Nimal Perera", "nimal.perera@gmail.com");
-}
-function signInWithEmail(){
-  const email = document.getElementById('auth-email').value.trim();
-  const name = document.getElementById('auth-name').value.trim();
-  if(!email || !name){
-    alert("Please enter both your name and email to sign in.");
-    return;
-  }
-  completeSignIn(name, email);
-}
 function signOut(){
   currentUser = null;
+  try { localStorage.removeItem('soba_user'); } catch(e) {}
   closeProfile();
   updateAccountUI();
 }
 function handleAccountClick(){
-  if(currentUser) openProfile();
-  else openAuth();
+  if (currentUser) {
+    if (currentUser.role === 'admin') {
+      window.location.href = 'modules/admin/dashboard.php';
+    } else {
+      window.location.href = 'modules/customer/user_dashboard.php';
+    }
+  } else {
+    window.location.href = 'login.php';
+  }
 }
 function updateAccountUI(){
   const avatar = document.getElementById('account-avatar');
   const label = document.getElementById('account-label');
   const helloEl = document.querySelector('#account-btn .hello');
   if(currentUser){
-    avatar.classList.add('signed-in');
-    avatar.textContent = currentUser.name.charAt(0).toUpperCase();
-    label.textContent = currentUser.name.split(' ')[0];
+    avatar?.classList.add('signed-in');
+    if(avatar) avatar.textContent = currentUser.name.charAt(0).toUpperCase();
+    if(label) label.textContent = currentUser.name.split(' ')[0];
     if(helloEl) helloEl.textContent = "Hello, " + currentUser.name.split(' ')[0];
   } else {
-    avatar.classList.remove('signed-in');
-    avatar.textContent = "👤";
-    label.textContent = "Sign in";
+    avatar?.classList.remove('signed-in');
+    if(avatar) avatar.textContent = "👤";
+    if(label) label.textContent = "Sign in";
     if(helloEl) helloEl.textContent = "Hello, sign in";
   }
 }
@@ -2820,12 +3113,12 @@ function updateAccountUI(){
 /* ===== Profile drawer ===== */
 function openProfile(){
   renderProfile();
-  document.getElementById('profile-drawer').classList.add('open');
-  document.getElementById('profile-overlay').classList.add('open');
+  document.getElementById('profile-drawer')?.classList.add('open');
+  document.getElementById('profile-overlay')?.classList.add('open');
 }
 function closeProfile(){
-  document.getElementById('profile-drawer').classList.remove('open');
-  document.getElementById('profile-overlay').classList.remove('open');
+  document.getElementById('profile-drawer')?.classList.remove('open');
+  document.getElementById('profile-overlay')?.classList.remove('open');
 }
 function levelFor(grams){
   let level = LEVELS[0];
@@ -2873,33 +3166,163 @@ renderGrid();
 updateAccountUI();
 updateAll();
 
-/* ===== Scroll progress + section intelligence ===== */
-(function(){
-  const progress=document.getElementById('scroll-progress');
-  const sections=[document.getElementById('about-section'),document.getElementById('reviews-section')].filter(Boolean);
-  const navLinks=[...document.querySelectorAll('.header-nav .nav-link[data-section]')];
-  function update(){
-    const max=document.documentElement.scrollHeight-window.innerHeight;
-    progress.style.transform=`scaleX(${max>0?window.scrollY/max:0})`;
+// Load live products from database
+async function loadHomeProductsFromDB() {
+  try {
+    const res = await fetch('/php/web/Soba-Project/backend/api/customer/get_products.php');
+    const data = await res.json();
+    if (data && data.success && Array.isArray(data.products) && data.products.length > 0) {
+      PRODUCTS = data.products.map(p => ({
+        id: p.id,
+        name: p.name,
+        cat: p.category_name || p.category || 'Eco Products',
+        material: p.material || 'Sustainable Material',
+        icon: p.icon || '🌱',
+        price: p.price,
+        saved: p.plastic_saved_g || 50,
+        cert: p.cert || 'Zero-Waste',
+        desc: p.description || 'Eco-friendly certified sustainable product.',
+        images: p.images || []
+      }));
+      renderFilters();
+      renderGrid();
+      updateAll();
+    }
+  } catch(e) {
+    console.warn("DB product fetch fallback in home.php", e);
   }
-  window.addEventListener('scroll',update,{passive:true}); update();
-  const sectionObserver=new IntersectionObserver(entries=>{
-    entries.forEach(entry=>{
-      if(entry.isIntersecting){
-        navLinks.forEach(a=>a.classList.toggle('section-active',a.dataset.section===entry.target.id));
+}
+loadHomeProductsFromDB();
+
+/* =====================================================================
+   RESPONSIVE DYNAMIC NAVBAR UNDERLINE (Tracks Hover, Click & Scroll)
+   ===================================================================== */
+const navSectionMap = [
+  { id: 'home-top', nav: 'home' },
+  { id: 'shop', nav: 'shop' },
+  { id: 'about-section', nav: 'about' },
+  { id: 'reviews-section', nav: 'reviews' },
+  { id: 'contact-section', nav: 'contact' }
+];
+
+let isProgrammaticScroll = false;
+let scrollTimer = null;
+
+function moveNavIndicator(targetLink, isSmooth = true) {
+  const indicator = document.getElementById('nav-indicator');
+  const nav = document.getElementById('navbar');
+  if (!indicator || !nav) return;
+
+  const link = targetLink || nav.querySelector('.nav-link.active') || nav.querySelector('.nav-link');
+  if (!link) {
+    indicator.style.opacity = '0';
+    return;
+  }
+
+  indicator.style.transition = isSmooth 
+    ? 'transform 0.28s cubic-bezier(.4,0,.2,1), width 0.28s cubic-bezier(.4,0,.2,1), opacity 0.2s ease'
+    : 'none';
+
+  const left = link.offsetLeft;
+  const width = link.offsetWidth;
+
+  indicator.style.transform = `translateX(${left}px)`;
+  indicator.style.width = `${width}px`;
+  indicator.style.opacity = '1';
+
+  // Responsive mobile sync: keeps active item centered inside horizontal scroll
+  const navBar = document.querySelector('.header-nav .bar');
+  if (navBar && navBar.scrollWidth > navBar.clientWidth) {
+    const center = left + width / 2 - navBar.clientWidth / 2;
+    navBar.scrollTo({ left: Math.max(0, center), behavior: isSmooth ? 'smooth' : 'auto' });
+  }
+}
+
+function setActiveNav(navKey, moveLine = true) {
+  const links = document.querySelectorAll('#navbar .nav-link');
+  let activeLink = null;
+  links.forEach(a => {
+    if (a.dataset.nav === navKey) {
+      a.classList.add('active');
+      activeLink = a;
+    } else {
+      a.classList.remove('active');
+    }
+  });
+  if (moveLine && activeLink) {
+    moveNavIndicator(activeLink, true);
+  }
+}
+
+function navTo(targetId) {
+  const sec = document.getElementById(targetId);
+  if (!sec) return;
+
+  const found = navSectionMap.find(item => item.id === targetId);
+  if (found) {
+    setActiveNav(found.nav, true);
+  }
+
+  isProgrammaticScroll = true;
+  clearTimeout(scrollTimer);
+
+  sec.scrollIntoView({ behavior: 'smooth' });
+
+  scrollTimer = setTimeout(() => {
+    isProgrammaticScroll = false;
+    moveNavIndicator(null, true);
+  }, 850);
+}
+
+// Hover event: line glides to whichever item you hover on!
+document.querySelectorAll('#navbar .nav-link').forEach(link => {
+  link.addEventListener('mouseenter', () => {
+    moveNavIndicator(link, true);
+  });
+});
+
+// Mouse leaves navbar: line returns smoothly to active link!
+document.getElementById('navbar')?.addEventListener('mouseleave', () => {
+  const activeLink = document.querySelector('#navbar .nav-link.active');
+  moveNavIndicator(activeLink, true);
+});
+
+// Responsive resize listener: recalculates position dynamically on any screen width!
+window.addEventListener('resize', () => moveNavIndicator(null, false));
+window.addEventListener('orientationchange', () => setTimeout(() => moveNavIndicator(null, false), 150));
+
+/* ===== Header Shrink + Scroll Spy ===== */
+(function(){
+  function update(){
+    const siteHeader = document.getElementById('site-header');
+    if(siteHeader) siteHeader.classList.toggle('shrink', window.scrollY > 40);
+
+    if (isProgrammaticScroll) return;
+
+    const headerHeight = siteHeader?.offsetHeight || 80;
+    const scrollPos = window.scrollY + headerHeight + 50;
+
+    // Contact (bottom of page)
+    if ((window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 50) {
+      setActiveNav('contact', true);
+      return;
+    }
+
+    // Check visible section backwards
+    for (let i = navSectionMap.length - 1; i >= 0; i--) {
+      const section = document.getElementById(navSectionMap[i].id);
+      if (section && section.offsetTop <= scrollPos) {
+        setActiveNav(navSectionMap[i].nav, true);
+        return;
       }
-    });
-  },{threshold:.35});
-  sections.forEach(s=>sectionObserver.observe(s));
+    }
+    setActiveNav('home', true);
+  }
+  window.addEventListener('scroll', update, {passive:true});
+  update();
 })();
 
-/* ===== Ambient spotlight follows cursor (desktop only) ===== */
-if(matchMedia('(pointer:fine)').matches){
-  window.addEventListener('mousemove', (e) => {
-    document.documentElement.style.setProperty('--mx', e.clientX+'px');
-    document.documentElement.style.setProperty('--my', e.clientY+'px');
-  });
-}
+/* ===== Ambient spotlight follows cursor disabled ===== */
 
 /* ===== Scroll-reveal for below-the-fold sections ===== */
 const revealObserver = new IntersectionObserver((entries) => {
@@ -2911,37 +3334,11 @@ const revealObserver = new IntersectionObserver((entries) => {
   });
 }, {threshold:0, rootMargin:"0px 0px -10% 0px"});
 document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
-/* Safety net: if for any reason an element never gets flagged as in-view
-   (observer edge-cases, very tall sections, reduced browser support, etc.)
-   force it to reveal on its own after load so nothing stays permanently hidden. */
 window.addEventListener('load', () => {
   setTimeout(() => {
     document.querySelectorAll('.reveal:not(.in-view)').forEach(el => el.classList.add('in-view'));
   }, 1200);
 });
-
-/* Count-up animation for impact stats now lives solely in the
-   "FINAL LIVE COUNTER ENGINE" further below — having two separate
-   IntersectionObservers animate the same [data-count] elements at once
-   was causing them to race and render garbled/stuck values. */
-
-/* ===== Hero leaves: gentle cursor parallax ===== */
-const heroEl = document.querySelector('.hero');
-if(heroEl){
-  const leaves = heroEl.querySelectorAll('.hero-decor .leaf');
-  heroEl.addEventListener('mousemove', (e) => {
-    const r = heroEl.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width - 0.5;
-    const py = (e.clientY - r.top) / r.height - 0.5;
-    leaves.forEach((leaf, i) => {
-      const depth = (i % 3 + 1) * 10;
-      leaf.style.transform = `translate(${px*depth}px, ${py*depth}px)`;
-    });
-  });
-  heroEl.addEventListener('mouseleave', () => {
-    leaves.forEach(leaf => leaf.style.transform = '');
-  });
-}
 
 /* ===== Subtle tilt on feature tiles + step / zigzag cards ===== */
 function addTilt(selector, strength){
@@ -2958,53 +3355,26 @@ function addTilt(selector, strength){
 addTilt('.feature-tile', 8);
 addTilt('.step-card', 4);
 
-/* ===== Sticky header shrink-on-scroll ===== */
-const siteHeader = document.getElementById('site-header');
-window.addEventListener('scroll', () => {
-  siteHeader.classList.toggle('shrink', window.scrollY > 40);
-  const homeLink = document.querySelector('.home-link');
-  if(homeLink){
-    homeLink.classList.toggle('active', window.scrollY < 120);
-  }
-}, {passive:true});
-
-/* ===== V2 motion layer ===== */
-(function(){
-  const hero=document.querySelector('.hero');
-  if(hero){
-    ['a','b','c'].forEach(k=>{const o=document.createElement('span');o.className='orb '+k;hero.appendChild(o);});
-    hero.addEventListener('mousemove',e=>{
-      const r=hero.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
-      const jar=document.querySelector('.jar-wrap');
-      const stamp=document.querySelector('.hero-stamp');
-      if(jar) jar.style.transform=`translate3d(${x*18}px,${y*14}px,0)`;
-      if(stamp) stamp.style.marginLeft=`${x*12}px`;
-    });
-    hero.addEventListener('mouseleave',()=>{
-      const jar=document.querySelector('.jar-wrap'); if(jar) jar.style.transform='';
-      const stamp=document.querySelector('.hero-stamp'); if(stamp) stamp.style.marginLeft='';
-    });
-  }
-  const els=document.querySelectorAll('.story-section,.cta-band,.feature-row,.shop-shell');
-  const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('motion-in')}),{threshold:.08});
-  els.forEach(el=>io.observe(el));
-})();
-
-
 // ===== Cinematic home interactions =====
 (function(){
   const featured=[1,3,5];
   const holder=document.getElementById('cin-products');
-  if(holder && typeof PRODUCTS!=='undefined'){
-    holder.innerHTML=featured.map(id=>{
-      const p=PRODUCTS.find(x=>x.id===id);
-      return `<div class="card" onclick="openProductDetail(${p.id})">
-        <div class="card-art"><span>${p.icon}</span></div>
+  if(holder && typeof PRODUCTS!=='undefined' && PRODUCTS.length){
+    // pick either featured IDs or first 3 products
+    const displayList = PRODUCTS.filter(x => featured.includes(x.id)).length >= 3 
+      ? PRODUCTS.filter(x => featured.includes(x.id)) 
+      : PRODUCTS.slice(0, 3);
+    holder.innerHTML = displayList.map(p => {
+      const pImg = (p.images && p.images.length > 0) ? p.images[0] : (p.image || null);
+      const artHtml = pImg 
+        ? `<img src="${pImg}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';"><span style="display:none;font-size:3.5rem;">${p.icon || '🌱'}</span>` 
+        : `<span>${p.icon || '🌱'}</span>`;
+      return `<div class="card" onclick="goToProductDetails(${p.id})">
+        <div class="card-art" style="overflow:hidden;position:relative;">${artHtml}</div>
         <div class="card-body">
           <h3>${p.name}</h3>
-          <div class="card-meta">${p.cat} · ${p.material}</div>
-          <div class="card-saved">🌱 <span class="mono">${p.saved}g</span> plastic saved</div>
-          <div class="card-foot"><span class="price">Rs. ${p.price.toLocaleString()}</span><button class="add-btn" onclick="event.stopPropagation();addToCart(${p.id})">Add to cart</button></div>
+          <div class="card-meta">${p.cat || 'Eco'} · ${p.material || 'Sustainable'}</div>
+          <div class="card-foot"><span class="price">Rs. ${(p.price || 0).toLocaleString()}</span><button class="add-btn" onclick="event.stopPropagation();addSelectedToCartAndGo(${p.id})">Add to cart</button></div>
         </div></div>`;
     }).join('');
   }
@@ -3016,78 +3386,9 @@ window.addEventListener('scroll', () => {
     });
     stage.addEventListener('mouseleave',()=>p.style.transform='');
   }
-  const cc=document.getElementById('cart-count'), cnc=document.getElementById('cin-cart-count');
-  const syncCart=()=>{if(cc&&cnc)cnc.textContent=cc.textContent};
-  setInterval(syncCart,350);
 })();
 
-
-/* ===== V4 story particles + scroll-linked depth ===== */
-(function(){
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const sections = [
-    document.getElementById('about-section'),
-    document.querySelector('.band-forest'),
-    document.getElementById('reviews-section')
-  ].filter(Boolean);
-
-  // Add lightweight particles without changing the HTML layout.
-  sections.forEach((section, index)=>{
-    if(section.querySelector('.story-particle')) return;
-    ['p1','p2','p3'].forEach(cls=>{
-      const dot=document.createElement('span');
-      dot.className='story-particle '+cls;
-      section.appendChild(dot);
-    });
-  });
-
-  if(reduce) return;
-
-  // Subtle depth/parallax only while scrolling, kept intentionally restrained.
-  let ticking=false;
-  function depth(){
-    const vh=innerHeight;
-    sections.forEach(section=>{
-      const r=section.getBoundingClientRect();
-      if(r.bottom<0 || r.top>vh) return;
-      const progress=(vh/2-r.top)/(vh+r.height);
-      const shift=Math.max(-14,Math.min(14,(progress-.5)*22));
-      section.style.setProperty('--story-shift',shift.toFixed(2)+'px');
-      // Move only decorative children; content remains stable.
-      section.querySelectorAll('.story-particle').forEach((dot,i)=>{
-        const depthFactor=(i+1)*.45;
-        dot.style.marginTop=(shift*depthFactor).toFixed(2)+'px';
-      });
-    });
-    ticking=false;
-  }
-  addEventListener('scroll',()=>{
-    if(!ticking){ requestAnimationFrame(depth); ticking=true; }
-  },{passive:true});
-  addEventListener('resize',depth,{passive:true});
-  depth();
-
-  // Pointer tilt for review cards on desktop.
-  if(matchMedia('(pointer:fine)').matches){
-    document.querySelectorAll('#reviews-section .quote-card').forEach(card=>{
-      card.addEventListener('pointermove',e=>{
-        if(!card.classList.contains('in-view') && !document.getElementById('reviews-section').classList.contains('in-view')) return;
-        const r=card.getBoundingClientRect();
-        const x=(e.clientX-r.left)/r.width-.5;
-        const y=(e.clientY-r.top)/r.height-.5;
-        card.style.setProperty('--rx',(-y*4).toFixed(2)+'deg');
-        card.style.setProperty('--ry',(x*5).toFixed(2)+'deg');
-        card.style.transform=`translateY(-10px) rotateZ(0deg) rotateX(${(-y*4).toFixed(2)}deg) rotateY(${(x*5).toFixed(2)}deg) scale(1.025)`;
-      });
-      card.addEventListener('pointerleave',()=>{
-        card.style.transform='';
-      });
-    });
-  }
-})();
-
-
-/* ===== FINAL STORY OBSERVER: animation without hiding content ===== */
+/* ===== FINAL STORY OBSERVER ===== */
 (function(){
   const targets=[
     document.getElementById('about-section'),
@@ -3108,14 +3409,7 @@ window.addEventListener('scroll', () => {
     });
   },{threshold:.08,rootMargin:'0px 0px -5% 0px'});
   targets.forEach(el=>io.observe(el));
-  /* If a section is already in the viewport when the page finishes loading. */
-  requestAnimationFrame(()=>targets.forEach(el=>{
-    const r=el.getBoundingClientRect();
-    if(r.top < innerHeight && r.bottom > 0) play(el);
-  }));
 })();
-
-
 
 /* ===== FINAL LIVE COUNTER ENGINE ===== */
 (function(){
@@ -3147,14 +3441,36 @@ window.addEventListener('scroll', () => {
       if(entry.isIntersecting){ count(entry.target); io.unobserve(entry.target); }
     }),{threshold:.1});
     stats.forEach(el=>io.observe(el));
-    /* Safety net: guarantee the real numbers appear even if the observer
-       edge-case never intersects (very tall/short viewports etc.) */
-    window.addEventListener('load', () => {
-      setTimeout(() => stats.forEach(el => { if(!el.classList.contains('counted')) finish(el); }), 1600);
-    });
+    // Do not complete the counters before the user scrolls to this section.
+    // IntersectionObserver starts them only when visible.
   }
 })();
 
+
+/* Phone/tablet: trigger animations per item, not on the whole section. */
+(function(){
+  if (!matchMedia('(max-width:900px)').matches) return;
+  const targets = document.querySelectorAll(
+    '#about-section .zigzag-row, .band-forest .impact-stat, #reviews-section .quote-card'
+  );
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
+    targets.forEach(el => el.classList.add('mobile-motion-visible'));
+    return;
+  }
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('mobile-motion-visible');
+      observer.unobserve(entry.target);
+    });
+  }, {threshold:0.12, rootMargin:'0px 0px -25px 0px'});
+  targets.forEach(el => observer.observe(el));
+})();
+
+// Page load initialization: positions line under active item
+window.addEventListener('DOMContentLoaded', () => moveNavIndicator(null, false));
+window.addEventListener('load', () => moveNavIndicator(null, false));
 </script>
+<script src="assets/js/main.js"></script>
 </body>
 </html>

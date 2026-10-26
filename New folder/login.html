@@ -27,7 +27,7 @@
   }
   h1,h2,h3{font-family:'Fraunces', serif; font-weight:500; letter-spacing:-0.01em; margin:0;}
 
-  /* ===== Ambient cinematic background ===== */
+  /* Ambient cinematic background */
   .bg-scene{
     position:fixed; inset:0; z-index:0; overflow:hidden;
     background:
@@ -46,14 +46,12 @@
   .bg-glow.g1{width:420px;height:420px; background:var(--neo); top:-140px; left:-140px;}
   .bg-glow.g2{width:380px;height:380px; background:#3B7A34; bottom:-120px; right:-100px;}
 
-  /* ===== Top nav ===== */
+  /* Top nav */
   header{position:relative; z-index:10; padding:22px 5vw;}
   .bar{
     max-width:1300px; margin:0 auto;
     display:flex; align-items:center; justify-content:space-between;
   }
-  
-  /* UPDATED LOGO STYLING MATCHING IMAGE */
   .logo{
     display:inline-flex; align-items:baseline; gap:12px; cursor:pointer; text-decoration:none;
   }
@@ -72,9 +70,9 @@
   }
   nav a:hover{color:#fff; border-color:var(--neo);}
  
-  .nav-toggle{display:none; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); border-radius:9px; width:38px; height:38px; color:#fff; font-size:16px; cursor:pointer;}
+  .nav-toggle{display:none; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); border-radius:99px; width:38px; height:38px; color:#fff; font-size:16px; cursor:pointer;}
 
-  /* ===== Login stage ===== */
+  /* Main container */
   main{
     position:relative; z-index:5; flex:1;
     display:flex; align-items:center; justify-content:center;
@@ -89,8 +87,7 @@
     backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
   }
   .auth-head{text-align:center; margin-bottom:28px;}
-  .leaf-mark{font-size:32px; filter:drop-shadow(0 0 14px rgba(184,255,61,.5));}
-  .auth-head h1{font-size:32px; color:#fff; margin-top:12px;}
+  .auth-head h1{font-size:32px; color:#fff;}
   .auth-head p{font-size:13.5px; color:rgba(244,242,233,.6); margin-top:8px; line-height:1.55;}
 
   #google-signin-btn{display:flex; justify-content:center;}
@@ -134,7 +131,7 @@
   .submit-btn:hover{transform:translateY(-1px); box-shadow:0 20px 40px rgba(184,255,61,.34);}
 
   .auth-foot{text-align:center; margin-top:20px; font-size:13px; color:rgba(244,242,233,.55);}
-  .auth-link{color:var(--neo); cursor:pointer; font-weight:600;}
+  .auth-link{color:var(--neo); text-decoration:none; font-weight:600;}
   .auth-link:hover{text-decoration:underline;}
   .fine-print{text-align:center; margin-top:14px; font-size:11.5px; color:rgba(244,242,233,.4); line-height:1.5;}
 
@@ -172,16 +169,16 @@
 
 <header>
   <div class="bar">
-    <!-- UPDATED HTML LOGO STRUCTURE -->
-    <a class="logo" href="Soba_Cinematic_Home_FIXED.html">
+    <a class="logo" href="Soba_Cinematic_Home_F.html">
       <span class="mark">Soba</span>
       <span class="sub">sobadahama · nature</span>
     </a>
     <nav id="mainNav">
       <a href="Soba_Cinematic_Home_F.html#home-top">Home</a>
-      <a href="products.html">Shop</a>
+      <a href="Soba_Cinematic_Home_F.html#shop">Shop</a>
       <a href="Soba_Cinematic_Home_F.html#about-section">About</a>
       <a href="Soba_Cinematic_Home_F.html#contact-section">Contact</a>
+      <a href="user_d.html">Dashboard</a>
     </nav>
     <button class="nav-toggle" id="navToggle" onclick="document.getElementById('mainNav').classList.toggle('open')" aria-label="Menu">☰</button>
   </div>
@@ -190,9 +187,8 @@
 <main>
   <div class="auth-card">
     <div class="auth-head">
-     
-      <h1 id="formTitle">Login</h1>
-      <p id="formSub">Sign in to keep your eco-impact and orders saved to you.</p>
+      <h1>Login</h1>
+      <p>Sign in to keep your eco-impact and orders saved to you.</p>
     </div>
 
     <div id="google-signin-btn"></div>
@@ -203,10 +199,6 @@
     <div class="divider">or with email</div>
 
     <form id="authForm" onsubmit="return handleSubmit(event)">
-      <div class="field-wrap" id="nameWrap" style="display:none;">
-        <label class="field-label">Full name</label>
-        <input class="field-input" id="auth-name" type="text" placeholder="Your name">
-      </div>
       <div class="field-wrap">
         <label class="field-label">Email</label>
         <input class="field-input" id="auth-email" type="email" placeholder="you@example.com" required>
@@ -218,39 +210,22 @@
         <span class="field-icon">🔒</span>
       </div>
 
-      <div class="auth-row" id="loginExtras">
+      <div class="auth-row">
         <label class="remember-me"><input type="checkbox" id="auth-remember"> Remember me</label>
-        <span class="forgot-link" onclick="showToast('Password reset isn\'t wired up in this prototype yet 🌿')">Forgot password?</span>
+        <span class="forgot-link" onclick="showToast('Password reset functionality isn\'t connected yet.')">Forgot password?</span>
       </div>
 
-      <button type="submit" class="submit-btn" id="submitBtn">Login</button>
+      <button type="submit" class="submit-btn">Login</button>
     </form>
 
-    <div class="auth-foot" id="switchModeRow">
-      Don't have an account? <span class="auth-link" onclick="toggleMode()">Register</span>
+    <div class="auth-foot">
+      Don't have an account? <a href="register.html" class="auth-link">Register</a>
     </div>
     <div class="fine-print">This is a course prototype — no real account or password is stored anywhere.</div>
   </div>
 </main>
 
 <script>
-  let mode = 'login'; // or 'register'
-
-  function toggleMode(){
-    mode = mode === 'login' ? 'register' : 'login';
-    const isRegister = mode === 'register';
-    document.getElementById('formTitle').textContent = isRegister ? 'Create account' : 'Login';
-    document.getElementById('formSub').textContent = isRegister
-      ? 'Join Soba to track your plastic-avoided total across every order.'
-      : 'Sign in to keep your eco-impact and orders saved to you.';
-    document.getElementById('nameWrap').style.display = isRegister ? 'block' : 'none';
-    document.getElementById('loginExtras').style.display = isRegister ? 'none' : 'flex';
-    document.getElementById('submitBtn').textContent = isRegister ? 'Create account' : 'Login';
-    document.getElementById('switchModeRow').innerHTML = isRegister
-      ? `Already have an account? <span class="auth-link" onclick="toggleMode()">Login</span>`
-      : `Don't have an account? <span class="auth-link" onclick="toggleMode()">Register</span>`;
-  }
-
   function showToast(msg){
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -262,9 +237,9 @@
   function completeSignIn(name, email){
     try{
       localStorage.setItem('soba_user', JSON.stringify({name, email}));
-    }catch(e){ /* localStorage may be unavailable — sign-in still proceeds */ }
-    showToast(`Welcome${name ? ', ' + name : ''} 🌿 redirecting…`);
-    setTimeout(() => { window.location.href = 'Soba_Cinematic_Home_FIXED.html'; }, 900);
+    }catch(e){}
+    showToast(`Welcome${name ? ', ' + name : ''} — redirecting to your dashboard…`);
+    setTimeout(() => { window.location.href = 'user_d.html'; }, 900);
   }
 
   function handleSubmit(e){
@@ -272,13 +247,8 @@
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-password').value;
     if(!email || !password){ showToast('Please fill in your email and password.'); return false; }
-    let name;
-    if(mode === 'register'){
-      name = document.getElementById('auth-name').value.trim();
-      if(!name){ showToast('Please enter your name to register.'); return false; }
-    }else{
-      name = email.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g, c => c.toUpperCase());
-    }
+    
+    const name = email.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g, c => c.toUpperCase());
     completeSignIn(name, email);
     return false;
   }
@@ -286,6 +256,7 @@
   function signInWithGoogle(){
     completeSignIn("Nimal Perera", "nimal.perera@gmail.com");
   }
+
   function handleGoogleCredential(response){
     try{
       const payload = JSON.parse(atob(response.credential.split('.')[1]));
@@ -294,6 +265,7 @@
       signInWithGoogle();
     }
   }
+
   function initGoogleSignIn(){
     const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
     const target = document.getElementById('google-signin-btn');
